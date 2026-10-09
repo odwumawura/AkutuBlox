@@ -109,41 +109,57 @@ export function newWebPage(index) {
 
 // ---- Reading the live editors into a project document ----
 
-export function blocksProjectFromWorkspace(base, workspace, sprite) {
-  const project = structuredClone(base);
-  project.meta.updatedAt = nowIso();
-  const scripts = workspace.getTopBlocks(true).map((block, i) => {
+// Scripts of the workspace as saved data (one entry per top-level block).
+export function scriptsFromWorkspace(workspace) {
+  return workspace.getTopBlocks(true).map((block, i) => {
     const { x, y } = block.getRelativeToSurfaceXY();
     return { id: `s-${i + 1}`, x: Math.round(x), y: Math.round(y), blocks: [Blockly.serialization.blocks.save(block)] };
   });
-  const cat = project.blocks.sprites[0];
-  cat.x = sprite.x;
-  cat.y = sprite.y;
-  cat.direction = sprite.dir;
-  cat.scripts = scripts;
+}
+
+// Saves the scripts of the sprite being edited, plus the starting place of every sprite (from the stage).
+export function blocksProjectFromWorkspace(base, workspace, starts, selectedId) {
+  const project = structuredClone(base);
+  project.meta.updatedAt = nowIso();
+  for (const sprite of project.blocks.sprites) {
+    if (sprite.id === selectedId) sprite.scripts = scriptsFromWorkspace(workspace);
+    const start = starts.find((st) => st.id === sprite.id);
+    if (start) {
+      sprite.x = start.x;
+      sprite.y = start.y;
+      sprite.direction = start.dir;
+    }
+  }
   return project;
 }
 
-// Captures the canvas into the current page of the project.
+export function loadSpriteScripts(workspace, sprite) {
+  workspace.clear();
+  for (const script of sprite.scripts || []) {
+    for (const block of script.blocks) {
+      Blockly.serialization.blocks.append({ ...block, x: script.x, y: script.y }, workspace, { recordUndo: false });
+    }
+  }
+}
+
+// Stage list for a project: where each sprite starts and which costume it wears.
+export function stageSpritesFromProject(project) {
+  return project.blocks.sprites.map((s) => ({ id: s.id, name: s.name, x: s.x, y: s.y, dir: s.direction, costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star' }));
+}
+
+export function loadBlocksProject(project, workspace, runtime, selectedId) {
+  const sprite = project.blocks.sprites.find((s) => s.id === selectedId) || project.blocks.sprites[0];
+  loadSpriteScripts(workspace, sprite);
+  runtime.setSprites(stageSpritesFromProject(project));
+  return sprite.id;
+}
+
 export function webProjectFromEditor(base, editor, pageId) {
   const project = structuredClone(base);
   project.meta.updatedAt = nowIso();
   const page = project.web.pages.find((p) => p.id === pageId);
   if (page) page.root = treeFromEditor(editor);
   return project;
-}
-
-// ---- Loading a document into the live editors ----
-
-export function loadBlocksProject(project, workspace, runtime) {
-  workspace.clear();
-  const cat = project.blocks.sprites[0];
-  for (const script of cat.scripts) {
-    for (const block of script.blocks) {
-      Blockly.serialization.blocks.append(block, workspace, { recordUndo: false });
-    }
-  }
-  runtime.setSprite({ x: cat.x, y: cat.y, dir: cat.direction });
 }
 
 export function loadWebPage(project, pageId, editor) {

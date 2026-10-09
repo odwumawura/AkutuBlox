@@ -4,12 +4,15 @@ import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
 import { javascriptGenerator, TOOLBOX } from './blocks.js';
+import { COSTUMES, BACKDROPS, newSprite } from './sprites.js';
 import { createStage } from './runtime.js';
 import {
   newBlocksProject,
   newWebProject,
   newWebPage,
   blocksProjectFromWorkspace,
+  loadSpriteScripts,
+  stageSpritesFromProject,
   webProjectFromEditor,
   loadBlocksProject,
   loadWebPage,
@@ -63,8 +66,116 @@ workspace.addChangeListener((e) => {
 });
 
 const stage = createStage(document.getElementById('stage'), document.getElementById('log'));
+
+// ----- Sprites and backdrops -----
+const blocksUi = { selectedId: null };
+
+// Saves the sprite being edited back into the project document.
+function saveSelectedSprite() {
+  if (!state.project || state.project.mode !== 'blocks' || !blocksUi.selectedId) return;
+  state.project = blocksProjectFromWorkspace(state.project, workspace, stage.getStarts(), blocksUi.selectedId);
+}
+
+// Code for one sprite, generated from its saved scripts on a headless workspace.
+function codeForSprite(sprite) {
+  const headless = new Blockly.Workspace();
+  loadSpriteScripts(headless, sprite);
+  const code = javascriptGenerator.workspaceToCode(headless);
+  headless.dispose();
+  return code;
+}
+
+function refreshStage() {
+  stage.setSprites(stageSpritesFromProject(state.project));
+  stage.setBackdrop(state.project.blocks.stage.backdrops[0]?.source || 'builtin:meadow');
+  renderSpriteList();
+  renderBackdropSelect();
+}
+
+function selectSprite(id) {
+  saveSelectedSprite();
+  blocksUi.selectedId = id;
+  const sprite = state.project.blocks.sprites.find((s) => s.id === id);
+  Blockly.Events.disable();
+  try {
+    loadSpriteScripts(workspace, sprite);
+  } finally {
+    Blockly.Events.enable();
+  }
+  renderSpriteList();
+}
+
+function renderSpriteList() {
+  const list = document.getElementById('sprite-list');
+  list.replaceChildren();
+  const sprites = state.project?.blocks?.sprites || [];
+  for (const s of sprites) {
+    const chip = document.createElement('span');
+    chip.className = 'chip sprite-chip' + (s.id === blocksUi.selectedId ? ' selected' : '');
+    const pick = document.createElement('button');
+    pick.className = 'chip-name';
+    pick.textContent = s.name;
+    pick.setAttribute('aria-pressed', String(s.id === blocksUi.selectedId));
+    pick.addEventListener('click', () => selectSprite(s.id));
+    chip.append(pick);
+    if (sprites.length > 1) {
+      const del = document.createElement('button');
+      del.textContent = '×';
+      del.title = `Delete ${s.name}`;
+      del.setAttribute('aria-label', `Delete ${s.name}`);
+      del.addEventListener('click', () => deleteSprite(s.id));
+      chip.append(del);
+    }
+    list.append(chip);
+  }
+}
+
+function addSprite() {
+  saveSelectedSprite();
+  const costume = document.getElementById('new-costume').value;
+  const sprite = newSprite(state.project.blocks.sprites.length + 1, costume);
+  state.project.blocks.sprites.push(sprite);
+  markDirty();
+  refreshStage();
+  selectSprite(sprite.id);
+}
+
+function deleteSprite(id) {
+  const sprites = state.project.blocks.sprites;
+  const sprite = sprites.find((s) => s.id === id);
+  if (sprites.length <= 1 || !sprite) return;
+  if (!confirm(`Delete ${sprite.name} and its scripts?`)) return;
+  saveSelectedSprite();
+  state.project.blocks.sprites = sprites.filter((s) => s.id !== id);
+  const next = state.project.blocks.sprites[0];
+  markDirty();
+  refreshStage();
+  selectSprite(next.id);
+}
+
+function renderBackdropSelect() {
+  const select = document.getElementById('backdrop-select');
+  const current = state.project?.blocks?.stage?.backdrops?.[0]?.source || 'builtin:meadow';
+  select.replaceChildren(...Object.entries(BACKDROPS).map(([key, b]) => new Option(b.label, key, false, key === current)));
+}
+
+function chooseBackdrop(source) {
+  const stageInfo = state.project.blocks.stage;
+  const rest = stageInfo.backdrops.filter((b) => b.source !== source);
+  const asset = { id: `bg-${source.split(':')[1]}`, name: BACKDROPS[source]?.label || source, type: 'vector', source };
+  stageInfo.backdrops = [asset, ...rest];
+  markDirty();
+  refreshStage();
+}
+
+document.getElementById('add-sprite').addEventListener('click', addSprite);
+document.getElementById('backdrop-select').addEventListener('change', (e) => chooseBackdrop(e.target.value));
+document.getElementById('new-costume').replaceChildren(...Object.entries(COSTUMES).map(([key, c]) => new Option(c.label, key)));
+
 document.getElementById('run').addEventListener('click', () => {
-  stage.greenFlag(javascriptGenerator.workspaceToCode(workspace));
+  saveSelectedSprite();
+  const runs = state.project.blocks.sprites.map((s) => ({ id: s.id, code: codeForSprite(s) }));
+  stage.greenFlag(runs);
 });
 document.getElementById('stop').addEventListener('click', () => stage.stop());
 
@@ -257,7 +368,9 @@ function loadIntoEditors(project) {
   Blockly.Events.disable();
   try {
     if (project.mode === 'blocks') {
-      loadBlocksProject(project, workspace, stage);
+      state.project = project;
+      blocksUi.selectedId = loadBlocksProject(project, workspace, stage, project.blocks.sprites[0].id);
+      refreshStage();
     } else {
       state.project = project;
       state.webPageId = loadWebPage(project, project.web.pages[0].id, editor);
@@ -294,7 +407,7 @@ function currentProjectDocument() {
   const base = state.project;
   const project =
     base.mode === 'blocks'
-      ? blocksProjectFromWorkspace(base, workspace, stage.getSprite())
+      ? blocksProjectFromWorkspace(base, workspace, stage.getStarts(), blocksUi.selectedId)
       : buildSiteProject();
   project.meta.name = el.name.value.trim() || 'Untitled';
   return project;
@@ -352,3 +465,6 @@ window.addEventListener('beforeunload', (e) => {
 
 // Start with the starter blocks project.
 loadIntoEditors(newBlocksProject('Square walker'));
+
+// Test hook: lets the browser tests read the stage. Harmless in production.
+window.__akutu = { sprites: () => stage.getSprites() };

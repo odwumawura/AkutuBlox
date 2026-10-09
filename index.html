@@ -31,6 +31,14 @@
               <button id="run" class="primary">Green flag</button>
               <button id="stop" class="danger">Stop</button>
             </div>
+            <div class="sprite-bar">
+              <div id="sprite-list" class="sprite-list" aria-label="Sprites"></div>
+              <div class="sprite-actions">
+                <select id="new-costume" aria-label="Costume for a new sprite"></select>
+                <button id="add-sprite" class="secondary">+ Sprite</button>
+                <label class="backdrop-row">Backdrop <select id="backdrop-select" aria-label="Backdrop"></select></label>
+              </div>
+            </div>
             <canvas id="stage" width="480" height="360"></canvas>
             <pre id="log" class="log"></pre>
           </div>

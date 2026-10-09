@@ -59,3 +59,12 @@ button.danger { background: #b42318; color: #fff; }
 #palette .gjs-blocks-cs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; }
 #palette .gjs-block { color: #1d2433; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; min-height: 0; width: auto; margin: 0; padding: 6px 10px; }
 #palette .gjs-block-label { color: #1d2433; font-size: 13px; }
+
+.sprite-bar { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #dfe4ec; }
+.sprite-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.sprite-chip { background: #e0e7ff; }
+.sprite-chip.selected { background: #4f46e5; color: #fff; }
+.sprite-chip.selected .chip-name, .sprite-chip.selected button { color: #fff; }
+.chip-name { border: 0; background: transparent; cursor: pointer; font: inherit; color: inherit; }
+.sprite-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.backdrop-row { display: inline-flex; gap: 4px; align-items: center; }

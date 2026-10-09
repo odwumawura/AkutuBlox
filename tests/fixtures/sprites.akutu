@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "blocks",
+  "meta": {
+    "name": "Two sprites",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "blocks": {
+    "stage": {
+      "logicalWidth": 480,
+      "logicalHeight": 360,
+      "displayPreset": "480x360",
+      "backdrops": [
+        {
+          "id": "bg-night",
+          "name": "Night",
+          "type": "vector",
+          "source": "builtin:night"
+        }
+      ]
+    },
+    "sprites": [
+      {
+        "id": "cat",
+        "name": "Cat",
+        "x": 0,
+        "y": 0,
+        "direction": 90,
+        "size": 100,
+        "visible": true,
+        "costumes": [
+          {
+            "id": "cat-c",
+            "name": "Cat",
+            "type": "vector",
+            "source": "builtin:cat",
+            "rotationCenterX": 50,
+            "rotationCenterY": 50
+          }
+        ],
+        "currentCostume": 0,
+        "scripts": [
+          {
+            "id": "s-1",
+            "x": 40,
+            "y": 40,
+            "blocks": [
+              {
+                "type": "event_flag",
+                "inputs": {
+                  "DO": {
+                    "block": {
+                      "type": "control_repeat",
+                      "fields": {
+                        "TIMES": 4
+                      },
+                      "inputs": {
+                        "DO": {
+                          "block": {
+                            "type": "motion_move",
+                            "fields": {
+                              "STEPS": 40
+                            },
+                            "next": {
+                              "block": {
+                                "type": "motion_turn",
+                                "fields": {
+                                  "DEGREES": 90
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "star",
+        "name": "Star",
+        "x": -100,
+        "y": 50,
+        "direction": 90,
+        "size": 100,
+        "visible": true,
+        "costumes": [
+          {
+            "id": "star-c",
+            "name": "Star",
+            "type": "vector",
+            "source": "builtin:star",
+            "rotationCenterX": 50,
+            "rotationCenterY": 50
+          }
+        ],
+        "currentCostume": 0,
+        "scripts": [
+          {
+            "id": "s-1",
+            "x": 40,
+            "y": 40,
+            "blocks": [
+              {
+                "type": "event_flag",
+                "inputs": {
+                  "DO": {
+                    "block": {
+                      "type": "motion_move",
+                      "fields": {
+                        "STEPS": 100
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
