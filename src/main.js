@@ -137,8 +137,17 @@ iws.addChangeListener((e) => {
   if (state.mode === 'web') markDirty();
 });
 
+let previewTimer = null;
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    if (state.mode === 'web' && document.getElementById('interactions-pane').hidden) previewCurrentPage();
+  }, 300);
+}
+
 editor.on('update', () => {
   if (state.loading || state.mode !== 'web') return;
+  schedulePreview();
   if (webSnapshot() !== state.webSnapshot) markDirty();
 });
 
@@ -169,6 +178,7 @@ function switchWebPage(pageId) {
   showInteractionsFor(state.webPageId);
   state.webSnapshot = webSnapshot();
   fillPageSelect();
+  previewCurrentPage();
 }
 
 function showInteractionsFor(pageId) {
@@ -253,6 +263,7 @@ function loadIntoEditors(project) {
       state.webPageId = loadWebPage(project, project.web.pages[0].id, editor);
       showInteractionsFor(state.webPageId);
       state.webSnapshot = webSnapshot();
+      previewCurrentPage();
       fillPageSelect();
     }
   } finally {

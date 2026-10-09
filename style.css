@@ -50,3 +50,12 @@ button.danger { background: #b42318; color: #fff; }
 .vars-bar input { width: 110px; padding: 4px 6px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 999px; background: #fef3c7; }
 .chip button { border: 0; background: transparent; cursor: pointer; font-size: 14px; line-height: 1; }
+
+/* Component palette: GrapesJS's dark block panel, restyled to match the app. */
+#palette .gjs-blocks-c, #palette .gjs-block-categories { background: #fff; }
+#palette .gjs-block-category { background: #fff; border: 0; }
+#palette .gjs-block-category .gjs-title { color: #4a5568; font-size: 13px; font-weight: 600; padding: 4px 0; }
+#palette .gjs-block-category .gjs-caret-icon { color: #4a5568; }
+#palette .gjs-blocks-cs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; }
+#palette .gjs-block { color: #1d2433; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; min-height: 0; width: auto; margin: 0; padding: 6px 10px; }
+#palette .gjs-block-label { color: #1d2433; font-size: 13px; }
