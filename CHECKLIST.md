@@ -27,7 +27,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
   - Done: installed; editor renders real Scratch blocks (Events, Motion, Control) at `/sb-spike.html`; locale must be set first (`ScratchMsgs.setLocale('en')`).
   - Open: blocks render black. The Classic theme fails ("Invalid colour"), ScratchBlocksTheme renders but without Scratch colours. Needs the colour setup.
   - Open: the bundled click sound fails to decode in headless Chromium (mp3). Harmless for now.
-- [?] **A0. Licence check before copying anything.** scratch-blocks is Apache-2.0 (checked). scratch-gui, the Scratch website UI, is AGPL-3.0, so we must not copy its code. scratch-vm is BSD-3. Confirm which parts we take.
+- [x] **A0. Licence check before copying anything.** scratch-blocks is Apache-2.0 (checked). scratch-gui, the Scratch website UI, is AGPL-3.0, so we must not copy its code. scratch-vm and scratch-storage are AGPL-3.0 (checked from the installed LICENSE files): not used. Earlier notes calling them BSD-3 were wrong.
 - [x] **A2. Map the 5 current green-flag blocks** to scratch-blocks opcodes. Mapping (current → Scratch):
   - `event_flag` → `event_whenflagclicked` (no inputs)
   - `motion_move` (field STEPS) → `motion_movesteps` (input STEPS, shadow `math_number` NUM=10)
@@ -35,8 +35,8 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
   - `control_repeat` (field TIMES) → `control_repeat` (input TIMES, shadow `math_number` NUM=10; statement SUBSTACK)
   - `control_wait` (field SECONDS) → `control_wait` (input DURATION, shadow `math_number` NUM=1)
   - Note: our fields become Scratch shadow-number inputs, so the file format needs a converter (part of A4).
-- [ ] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Replaces the current Blockly generator.
-- [x] **A3 decision: APPROVED by user (scratch-vm + scratch-storage, both BSD-3).** Original note:  use the Scratch runtime that matches scratch-blocks, so we get full block behavior without writing it ourselves. Cost: heavier, and it replaces our sandbox worker, so we need to keep sandboxing another way. Awaiting your yes.
+- [ ] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Done for the current 5 blocks (`src/codegen.js`, which replaces the Blockly generator). Runtime: our own, per the decision below.
+- [x] **A3 decision (corrected): our own runtime, not scratch-vm.** scratch-vm and scratch-storage are AGPL-3.0 (my earlier "BSD-3" was wrong; checked from the installed LICENSE files). Hosting them would require publishing the whole app under AGPL, so they were removed. We keep our own runtime (stage plus sandbox worker, code from `src/codegen.js`) and grow its block set ourselves under our own licence. User approved this path.
 - [x] **A4. Switch Blocks mode to scratch-blocks.** Done: scratch-blocks is the default. The saved `.akutu` format and the runtime are unchanged; `src/editor-scratch.js` converts both ways.  All 9 suites pass on both editors, plus the new `tests/blocks_roundtrip_test.py`.
 - [x] **A5. Remove the old Blockly block code** (done: old editor, `src/blocks.js`, and the scratch-blocks spike page removed; `src/codegen.js` replaces the generator and gives the same code for the same scripts). Blockly stays only for the Web interactions editor.
 - [ ] **A6. Categories** (Phase 1 requires full Scratch 3.0): Motion, Looks, Sound, Events, Control, Sensing, Operators, Variables, My Blocks.
@@ -92,7 +92,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 
 ## Decisions needed from you
 
-1. **A3:** our own runtime on scratch-blocks, or scratch-vm? (Recommendation: scratch-vm.)
+1. **A3:** resolved: our own runtime (scratch-vm is AGPL-3.0).
 2. **A8:** art style for costumes and backdrops.
 3. **C3:** scope of text coding in Phase 2.
 
