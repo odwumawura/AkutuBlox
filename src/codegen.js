@@ -20,6 +20,7 @@ const GEN = {
   looks_hide: () => 'await sprite.hide();\n',
   looks_changesize: (b) => `await sprite.changeSize(${num(b.fields?.CHANGE)});\n`,
   looks_setsize: (b) => `await sprite.setSize(${num(b.fields?.SIZE)});\n`,
+  control_forever: (b) => `for (;;) {\nawait sprite.tick();\n${body(b, 'DO')}}\n`,
   control_wait: (b) => `await sprite.wait(${num(b.fields?.SECONDS)});\n`,
 };
 

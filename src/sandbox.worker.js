@@ -82,6 +82,10 @@ const api = {
     state.dir = ((Number(dir) % 360) + 360) % 360;
     await publish();
   },
+  // Yields to the event loop so a forever loop never blocks the worker.
+  async tick() {
+    await new Promise((r) => setTimeout(r, 0));
+  },
   async wait(seconds) {
     await new Promise((r) => setTimeout(r, seconds * 1000));
   },

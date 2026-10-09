@@ -50,6 +50,7 @@ export const TOOLBOX_XML = `
     <block type="looks_setsizeto"><value name="SIZE"><shadow type="math_number"><field name="NUM">100</field></shadow></value></block>
   </category>
   <category name="Control" id="control" colour="#FFAB19">
+    <block type="control_forever"/>
     <block type="control_repeat"><value name="TIMES"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
     <block type="control_wait"><value name="DURATION"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
   </category>
@@ -72,6 +73,7 @@ const MAP = [
   { old: 'looks_hide', scratch: 'looks_hide', numberInputs: {}, statements: {} },
   { old: 'looks_changesize', scratch: 'looks_changesizeby', numberInputs: { CHANGE: 'CHANGE' }, statements: {} },
   { old: 'looks_setsize', scratch: 'looks_setsizeto', numberInputs: { SIZE: 'SIZE' }, statements: {} },
+  { old: 'control_forever', scratch: 'control_forever', numberInputs: {}, statements: { DO: 'SUBSTACK' } },
   { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' } },
   { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {} },
 ];
