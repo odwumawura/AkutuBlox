@@ -23,7 +23,7 @@ Phase 1 is partly done. Web mode is well along. Blocks mode is still a spike and
 
 Goal: the real Scratch 3.0 block editor and block set, with our own sprite and stage runtime.
 
-- [~] **A1. Spike.** Install scratch-blocks 2.1.32 (Apache-2.0, npm) and show its editor in a test view next to the current one. Confirm it builds with Vite.
+- [x] **A1. Spike.** Done: blocks show Scratch colours via a custom Scratch theme (scratch-blocks looks up styles by category name, e.g. `motion`; the built-in Blockly themes have none, which caused the black blocks). Install scratch-blocks 2.1.32 (Apache-2.0, npm) and show its editor in a test view next to the current one. Confirm it builds with Vite.
   - Done: installed; editor renders real Scratch blocks (Events, Motion, Control) at `/sb-spike.html`; locale must be set first (`ScratchMsgs.setLocale('en')`).
   - Open: blocks render black. The Classic theme fails ("Invalid colour"), ScratchBlocksTheme renders but without Scratch colours. Needs the colour setup.
   - Open: the bundled click sound fails to decode in headless Chromium (mp3). Harmless for now.
@@ -93,4 +93,4 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Log
 
 - 2026-10-09: Plan written. A1 started: scratch-blocks renders in a spike page; colours still open.
-- 2026-10-09: Web blocks → live preview fixed (B0). Mascot research (M0) done.
+- 2026-10-09: Web blocks → live preview fixed (B0). Mascot research (M0) done. A3 approved. A1 done (scratch-blocks colours fixed). Drag test in suite.
