@@ -46,6 +46,7 @@
               <button id="export" class="primary">Export site (.zip)</button>
               <button id="preview" class="secondary">Preview page</button>
             </div>
+            <div id="palette" class="palette" aria-label="Add components"></div>
             <div id="gjs"></div>
           </div>
           <div class="side-pane">
@@ -55,6 +56,13 @@
             </div>
             <iframe id="preview-frame" title="Exported page preview" sandbox="allow-scripts"></iframe>
             <div id="interactions-pane" class="interactions-pane" hidden>
+              <div class="vars-bar">
+                <span class="vars-title">Variables</span>
+                <span id="vars-list"></span>
+                <input id="var-name" placeholder="name" aria-label="Variable name" maxlength="40">
+                <input id="var-value" placeholder="start value" aria-label="Start value" maxlength="80">
+                <button id="var-add" class="secondary">Add</button>
+              </div>
               <p class="hint">Build what happens on this page. Pick an element in each block.</p>
               <div id="iblockly"></div>
             </div>

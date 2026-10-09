@@ -16,7 +16,7 @@ import {
   downloadProject,
   readProjectFile,
 } from './project.js';
-import { siteFiles, previewHtml, treeFromEditor } from './web/model.js';
+import { siteFiles, previewHtml, treeFromEditor, PALETTE } from './web/model.js';
 import {
   INTERACTION_TOOLBOX,
   registerInteractionBlocks,
@@ -75,7 +75,9 @@ const editor = grapesjs.init({
   width: 'auto',
   storageManager: false,
   components: '',
+  blockManager: { appendTo: '#palette' },
 });
+for (const item of PALETTE) editor.Blocks.add(item.id, { label: item.label, content: item.content, category: 'Components' });
 // GrapesJS reports updates after loading too, so only count a change when the canvas really differs from the last snapshot.
 const webSnapshot = () => JSON.stringify(treeFromEditor(editor));
 // Interaction editor (right pane). Hidden until the Interactions tab is opened.
@@ -87,9 +89,49 @@ const iws = Blockly.inject('iblockly', {
   grid: { spacing: 20, length: 3, colour: '#dfe4ec', snap: true },
 });
 setInteractionContext({
-  targets: () => elementsOf(treeFromEditor(editor)),
+  elements: () => elementsOf(treeFromEditor(editor)),
   pages: () => (state.project?.web?.pages || []),
+  variables: () => (state.project?.web?.variables || []),
 });
+
+// ----- Variables (project-wide) -----
+const VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+function renderVariables() {
+  const list = document.getElementById('vars-list');
+  list.replaceChildren();
+  for (const v of state.project?.web?.variables || []) {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = `${v.name} = ${v.value}`;
+    const del = document.createElement('button');
+    del.textContent = '×';
+    del.title = `Delete ${v.name}`;
+    del.setAttribute('aria-label', `Delete ${v.name}`);
+    del.addEventListener('click', () => deleteVariable(v.name));
+    chip.append(del);
+    list.append(chip);
+  }
+}
+function addVariable() {
+  const name = document.getElementById('var-name').value.trim();
+  const raw = document.getElementById('var-value').value;
+  if (!VAR_NAME.test(name)) return alert('Variable names start with a letter or _, use letters, numbers, or _, and are up to 40 characters.');
+  const vars = state.project.web.variables || (state.project.web.variables = []);
+  if (vars.some((v) => v.name === name)) return alert(`A variable called ${name} already exists.`);
+  vars.push({ id: `v-${name}`, name, value: raw });
+  document.getElementById('var-name').value = '';
+  document.getElementById('var-value').value = '';
+  renderVariables();
+  markDirty();
+}
+function deleteVariable(name) {
+  const used = state.project.web.pages.some((p) => JSON.stringify(p.interactions || []).includes(`"${name}"`)) || JSON.stringify(interactionsFromWorkspace(iws)).includes(`"${name}"`);
+  if (used) return alert(`${name} is used in a block. Remove those blocks first.`);
+  state.project.web.variables = (state.project.web.variables || []).filter((v) => v.name !== name);
+  renderVariables();
+  markDirty();
+}
+document.getElementById('var-add').addEventListener('click', addVariable);
 iws.addChangeListener((e) => {
   if (e.isUiEvent || e.type === Blockly.Events.VIEWPORT_CHANGE) return;
   if (state.mode === 'web') markDirty();
@@ -130,6 +172,7 @@ function switchWebPage(pageId) {
 }
 
 function showInteractionsFor(pageId) {
+  renderVariables();
   const page = state.project.web.pages.find((p) => p.id === pageId);
   state.loading = true;
   Blockly.Events.disable();

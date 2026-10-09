@@ -81,6 +81,7 @@ export function newWebProject(name = 'Untitled website') {
     meta: { name, createdAt: t, updatedAt: t, appVersion: APP_VERSION },
     web: {
       theme: { primaryColor: '#0F766E', fontPair: 'inter-poppins', spacingScale: 'comfortable' },
+      variables: [],
       pages: [
         {
           id: 'home', name: 'Home', path: 'index', title: 'Welcome', isHome: true,

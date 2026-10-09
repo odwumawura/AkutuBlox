@@ -2,175 +2,139 @@
 // Learners build triggers and actions as blocks. We store the interaction model, not the blocks.
 import * as Blockly from 'blockly';
 
-const COLOR = '#0E7490';
+const TRIGGER_COLOR = '#0E7490';
 const ACTION_COLOR = '#1D4ED8';
-const HEX = /^#[0-9a-fA-F]{6}$/;
+const VARIABLE_COLOR = '#B45309';
 
-export const TRIGGERS = {
-  clicked: { block: 'trigger_clicked', needsTarget: true },
-  hovered: { block: 'trigger_hovered', needsTarget: true },
-  mouseLeft: { block: 'trigger_mouseLeft', needsTarget: true },
-  pageLoaded: { block: 'trigger_pageLoaded', needsTarget: false },
+// One table drives the blocks, the toolbox, and both conversions.
+//   parts: text strings, or { field, menu } (dropdown), { field, text } (text input), { field, number } (number input)
+//   params: model param name -> field name. For triggers, "target" is the element the trigger is attached to.
+const SPEC = {
+  triggers: {
+    clicked: { label: 'When', parts: ['when', { field: 'TARGET', menu: 'element' }, 'is clicked'], target: 'TARGET' },
+    hovered: { parts: ['when', { field: 'TARGET', menu: 'element' }, 'is hovered'], target: 'TARGET' },
+    mouseLeft: { parts: ['when', { field: 'TARGET', menu: 'element' }, 'mouse leaves'], target: 'TARGET' },
+    pageLoaded: { parts: ['when the page loads'] },
+    formSubmitted: { parts: ['when', { field: 'TARGET', menu: 'form' }, 'is submitted'], target: 'TARGET' },
+    textChanged: { parts: ['when text changes in', { field: 'TARGET', menu: 'textInput' }], target: 'TARGET' },
+    checkboxChecked: { parts: ['when', { field: 'TARGET', menu: 'checkbox' }, 'is ticked'], target: 'TARGET' },
+    timerReached: { parts: ['after', { field: 'SECONDS', number: 5 }, 'seconds on the page'], params: { seconds: 'SECONDS' } },
+    variableEquals: { parts: ['when variable', { field: 'NAME', menu: 'variable' }, 'equals', { field: 'VALUE', text: '0' }], params: { name: 'NAME', value: 'VALUE' } },
+  },
+  actions: {
+    show: { parts: ['show', { field: 'TARGET', menu: 'element' }], params: { targetId: 'TARGET' } },
+    hide: { parts: ['hide', { field: 'TARGET', menu: 'element' }], params: { targetId: 'TARGET' } },
+    toggle: { parts: ['toggle', { field: 'TARGET', menu: 'element' }], params: { targetId: 'TARGET' } },
+    fadeIn: { parts: ['fade in', { field: 'TARGET', menu: 'element' }], params: { targetId: 'TARGET' } },
+    fadeOut: { parts: ['fade out', { field: 'TARGET', menu: 'element' }], params: { targetId: 'TARGET' } },
+    move: { parts: ['move', { field: 'TARGET', menu: 'element' }, 'right', { field: 'DX', number: 0 }, 'px, down', { field: 'DY', number: 0 }, 'px'], params: { targetId: 'TARGET', dx: 'DX', dy: 'DY' } },
+    setText: { parts: ['set text of', { field: 'TARGET', menu: 'element' }, 'to', { field: 'TEXT', text: 'Hello!' }], params: { targetId: 'TARGET', text: 'TEXT' } },
+    showVariable: { parts: ['show variable', { field: 'NAME', menu: 'variable' }, 'in', { field: 'TARGET', menu: 'element' }], params: { name: 'NAME', targetId: 'TARGET' } },
+    setTextColor: { parts: ['set text color of', { field: 'TARGET', menu: 'element' }, 'to', { field: 'COLOR', text: '#1d2433' }], params: { targetId: 'TARGET', color: 'COLOR' } },
+    setBackground: { parts: ['set background of', { field: 'TARGET', menu: 'element' }, 'to', { field: 'COLOR', text: '#0F766E' }], params: { targetId: 'TARGET', color: 'COLOR' } },
+    setImage: { parts: ['set picture of', { field: 'TARGET', menu: 'image' }, 'to', { field: 'URL', text: 'https://' }], params: { targetId: 'TARGET', url: 'URL' } },
+    playSound: { parts: ['play sound', { field: 'URL', text: 'https://' }], params: { url: 'URL' } },
+    goToPage: { parts: ['go to page', { field: 'PAGE', menu: 'page' }], params: { pageId: 'PAGE' } },
+    openLink: { parts: ['open link', { field: 'URL', text: 'https://' }], params: { url: 'URL' } },
+    setVariable: { parts: ['set variable', { field: 'NAME', menu: 'variable' }, 'to', { field: 'VALUE', text: '0' }], params: { name: 'NAME', value: 'VALUE' } },
+    changeVariable: { parts: ['change variable', { field: 'NAME', menu: 'variable' }, 'by', { field: 'BY', number: 1 }], params: { name: 'NAME', by: 'BY' } },
+    readField: { parts: ['set variable', { field: 'NAME', menu: 'variable' }, 'to the text in', { field: 'TARGET', menu: 'textInput' }], params: { name: 'NAME', targetId: 'TARGET' } },
+    wait: { parts: ['wait', { field: 'SECONDS', number: 1 }, 'seconds'], params: { seconds: 'SECONDS' } },
+  },
 };
+const NUMBER_FIELDS = new Set(['SECONDS', 'DX', 'DY', 'BY']);
 
-// Action block type -> model action type. Fields define how params map to the block.
-export const ACTIONS = {
-  show: { block: 'action_show', fields: ['TARGET'] },
-  hide: { block: 'action_hide', fields: ['TARGET'] },
-  toggle: { block: 'action_toggle', fields: ['TARGET'] },
-  setText: { block: 'action_setText', fields: ['TARGET', 'TEXT'] },
-  setTextColor: { block: 'action_setTextColor', fields: ['TARGET', 'COLOR'] },
-  setBackground: { block: 'action_setBackground', fields: ['TARGET', 'COLOR'] },
-  goToPage: { block: 'action_goToPage', fields: ['PAGE'] },
-  openLink: { block: 'action_openLink', fields: ['URL'] },
-};
-const ACTION_BY_BLOCK = Object.fromEntries(Object.entries(ACTIONS).map(([type, def]) => [def.block, type]));
-const TRIGGER_BY_BLOCK = Object.fromEntries(Object.entries(TRIGGERS).map(([type, def]) => [def.block, type]));
+const TRIGGER_BY_BLOCK = Object.fromEntries(Object.keys(SPEC.triggers).map((t) => [`trigger_${t}`, t]));
+const ACTION_BY_BLOCK = Object.fromEntries(Object.keys(SPEC.actions).map((a) => [`action_${a}`, a]));
 
-// Options come from the current page, so they are read when the menu opens.
-const context = { targets: () => [], pages: () => [] };
-export function setInteractionContext({ targets, pages }) {
-  context.targets = targets;
-  context.pages = pages;
+// Menus read the current page and project, so they are read each time a dropdown opens.
+const context = { elements: () => [], pages: () => [], variables: () => [] };
+export function setInteractionContext({ elements, pages, variables }) {
+  Object.assign(context, { elements, pages, variables });
 }
-const targetMenu = () => {
-  const list = context.targets().map((t) => [t.label, t.id]);
-  return list.length ? list : [['(no elements on this page)', '']];
-};
-const pageMenu = () => {
-  const list = context.pages().map((p) => [p.name, p.id]);
-  return list.length ? list : [['(no pages)', '']];
-};
+const KIND_OF_TYPE = { form: 'form', textInput: 'textInput', checkbox: 'checkbox', image: 'image' };
+function menuFor(kind) {
+  return () => {
+    let list;
+    if (kind === 'element') list = context.elements().map((e) => [e.label, e.id]);
+    else if (kind === 'page') list = context.pages().map((p) => [p.name, p.id]);
+    else if (kind === 'variable') list = context.variables().map((v) => [v.name, v.name]);
+    else list = context.elements().filter((e) => KIND_OF_TYPE[e.type] === kind).map((e) => [e.label, e.id]);
+    return list.length ? list : [[`(no ${kind === 'element' ? 'elements' : kind} yet)`, '']];
+  };
+}
 
 let registered = false;
 export function registerInteractionBlocks() {
   if (registered) return;
   registered = true;
-
-  const hat = (type, label, needsTarget) => {
-    Blockly.Blocks[type] = {
+  const add = (kind, name, spec) => {
+    const colour = kind === 'trigger' ? TRIGGER_COLOR : ACTION_COLOR;
+    Blockly.Blocks[`${kind}_${name}`] = {
       init() {
-        const row = this.appendDummyInput().appendField('when');
-        if (needsTarget) row.appendField(new Blockly.FieldDropdown(targetMenu), 'TARGET').appendField(label);
-        else row.appendField(label);
-        this.appendStatementInput('DO');
-        this.setColour(COLOR);
-        this.setTooltip('Runs the blocks inside when this happens.');
+        const row = this.appendDummyInput();
+        for (const part of spec.parts) {
+          if (typeof part === 'string') row.appendField(part);
+          else if (part.menu) {
+            const menu = part.menu === 'variable' ? menuFor('variable') : menuFor(part.menu);
+            row.appendField(new Blockly.FieldDropdown(menu), part.field);
+          } else if (part.number !== undefined) row.appendField(new Blockly.FieldNumber(part.number), part.field);
+          else row.appendField(new Blockly.FieldTextInput(part.text), part.field);
+        }
+        if (kind === 'trigger') this.appendStatementInput('DO');
+        else {
+          this.setPreviousStatement(true);
+          this.setNextStatement(true);
+        }
+        this.setColour(colour);
+        this.setTooltip(kind === 'trigger' ? 'Runs the blocks inside when this happens.' : 'Does this step.');
       },
     };
   };
-  hat('trigger_clicked', 'is clicked', true);
-  hat('trigger_hovered', 'is hovered', true);
-  hat('trigger_mouseLeft', 'mouse leaves', true);
-  hat('trigger_pageLoaded', 'the page loads', false);
-
-  const action = (type, build) => {
-    Blockly.Blocks[type] = {
-      init() {
-        build(this);
-        this.setPreviousStatement(true);
-        this.setNextStatement(true);
-        this.setColour(ACTION_COLOR);
-      },
-    };
-  };
-  const target = (verb) => (b) => b.appendDummyInput().appendField(verb).appendField(new Blockly.FieldDropdown(targetMenu), 'TARGET');
-  action('action_show', target('show'));
-  action('action_hide', target('hide'));
-  action('action_toggle', target('toggle'));
-  action('action_setText', (b) => {
-    b.appendDummyInput().appendField('set text of').appendField(new Blockly.FieldDropdown(targetMenu), 'TARGET');
-    b.appendDummyInput().appendField('to').appendField(new Blockly.FieldTextInput('Hello!'), 'TEXT');
-  });
-  action('action_setTextColor', (b) => {
-    b.appendDummyInput().appendField('set text color of').appendField(new Blockly.FieldDropdown(targetMenu), 'TARGET');
-    b.appendDummyInput().appendField('to').appendField(new Blockly.FieldTextInput('#1d2433'), 'COLOR');
-  });
-  action('action_setBackground', (b) => {
-    b.appendDummyInput().appendField('set background of').appendField(new Blockly.FieldDropdown(targetMenu), 'TARGET');
-    b.appendDummyInput().appendField('to').appendField(new Blockly.FieldTextInput('#0F766E'), 'COLOR');
-  });
-  action('action_goToPage', (b) => b.appendDummyInput().appendField('go to page').appendField(new Blockly.FieldDropdown(pageMenu), 'PAGE'));
-  action('action_openLink', (b) => b.appendDummyInput().appendField('open link').appendField(new Blockly.FieldTextInput('https://'), 'URL'));
+  for (const [name, spec] of Object.entries(SPEC.triggers)) add('trigger', name, spec);
+  for (const [name, spec] of Object.entries(SPEC.actions)) add('action', name, spec);
 }
 
+const blocksOf = (kind, names) => names.map((n) => ({ kind: 'block', type: `${kind}_${n}` }));
 export const INTERACTION_TOOLBOX = {
   kind: 'categoryToolbox',
   contents: [
-    {
-      kind: 'category', name: 'When', colour: COLOR, contents: [
-        { kind: 'block', type: 'trigger_clicked' },
-        { kind: 'block', type: 'trigger_hovered' },
-        { kind: 'block', type: 'trigger_mouseLeft' },
-        { kind: 'block', type: 'trigger_pageLoaded' },
-      ],
-    },
-    {
-      kind: 'category', name: 'Show & hide', colour: ACTION_COLOR, contents: [
-        { kind: 'block', type: 'action_show' },
-        { kind: 'block', type: 'action_hide' },
-        { kind: 'block', type: 'action_toggle' },
-      ],
-    },
-    {
-      kind: 'category', name: 'Change', colour: ACTION_COLOR, contents: [
-        { kind: 'block', type: 'action_setText' },
-        { kind: 'block', type: 'action_setTextColor' },
-        { kind: 'block', type: 'action_setBackground' },
-      ],
-    },
-    {
-      kind: 'category', name: 'Navigate', colour: ACTION_COLOR, contents: [
-        { kind: 'block', type: 'action_goToPage' },
-        { kind: 'block', type: 'action_openLink' },
-      ],
-    },
+    { kind: 'category', name: 'When', colour: TRIGGER_COLOR, contents: blocksOf('trigger', Object.keys(SPEC.triggers)) },
+    { kind: 'category', name: 'Show & hide', colour: ACTION_COLOR, contents: blocksOf('action', ['show', 'hide', 'toggle', 'fadeIn', 'fadeOut', 'move']) },
+    { kind: 'category', name: 'Change', colour: ACTION_COLOR, contents: blocksOf('action', ['setText', 'setTextColor', 'setBackground', 'setImage']) },
+    { kind: 'category', name: 'Forms & sound', colour: ACTION_COLOR, contents: blocksOf('action', ['readField', 'playSound', 'openLink', 'goToPage']) },
+    { kind: 'category', name: 'Variables & time', colour: VARIABLE_COLOR, contents: blocksOf('action', ['setVariable', 'changeVariable', 'showVariable', 'wait']) },
   ],
 };
 
 // ---------- Blocks -> model ----------
 
-function actionFromBlock(block) {
-  const type = ACTION_BY_BLOCK[block.type];
-  if (!type) return null;
-  const f = (name) => String(block.getFieldValue(name) ?? '');
-  switch (type) {
-    case 'show':
-    case 'hide':
-    case 'toggle':
-      return { type, params: { targetId: f('TARGET') } };
-    case 'setText':
-      return { type, params: { targetId: f('TARGET'), text: f('TEXT') } };
-    case 'setTextColor':
-    case 'setBackground': {
-      const color = f('COLOR');
-      return { type, params: { targetId: f('TARGET'), color: HEX.test(color) ? color : '' } };
-    }
-    case 'goToPage':
-      return { type, params: { pageId: f('PAGE') } };
-    case 'openLink': {
-      const url = f('URL').trim();
-      return { type, params: { url: /^https?:\/\//.test(url) ? url : '' } };
-    }
-    default:
-      return null;
+function paramsFromBlock(block, params) {
+  const out = {};
+  for (const [name, field] of Object.entries(params)) {
+    const raw = block.getFieldValue(field);
+    out[name] = NUMBER_FIELDS.has(field) ? Number(raw) || 0 : String(raw ?? '');
   }
+  return out;
 }
 
 export function interactionsFromWorkspace(workspace) {
   const result = [];
   for (const top of workspace.getTopBlocks(true)) {
-    const trigger = TRIGGER_BY_BLOCK[top.type];
-    if (!trigger) continue;
+    const type = TRIGGER_BY_BLOCK[top.type];
+    if (!type) continue;
+    const spec = SPEC.triggers[type];
+    const trigger = { type };
+    if (spec.params) trigger.params = paramsFromBlock(top, spec.params);
     const actions = [];
     let b = top.getInputTargetBlock('DO');
     while (b) {
-      const a = actionFromBlock(b);
-      if (a) actions.push(a);
+      const aType = ACTION_BY_BLOCK[b.type];
+      if (aType) actions.push({ type: aType, params: paramsFromBlock(b, SPEC.actions[aType].params || {}) });
       b = b.getNextBlock();
     }
-    const ix = { id: `ix-${result.length + 1}`, trigger: { type: trigger }, actions };
-    if (TRIGGERS[trigger].needsTarget) ix.targetId = top.getFieldValue('TARGET') || '';
+    const ix = { id: `ix-${result.length + 1}`, trigger, actions };
+    if (spec.target) ix.targetId = String(top.getFieldValue(spec.target) || '');
     result.push(ix);
   }
   return result;
@@ -178,49 +142,49 @@ export function interactionsFromWorkspace(workspace) {
 
 // ---------- Model -> blocks ----------
 
-function blockJsonForAction(a) {
-  const def = ACTIONS[a.type];
-  if (!def) return null;
-  const p = a.params || {};
+function fieldsFor(spec, params, targetId) {
   const fields = {};
-  if (def.fields.includes('TARGET')) fields.TARGET = p.targetId || '';
-  if (def.fields.includes('TEXT')) fields.TEXT = p.text ?? '';
-  if (def.fields.includes('COLOR')) fields.COLOR = p.color || (a.type === 'setBackground' ? '#0F766E' : '#1d2433');
-  if (def.fields.includes('PAGE')) fields.PAGE = p.pageId || '';
-  if (def.fields.includes('URL')) fields.URL = p.url || 'https://';
-  return { type: def.block, fields };
+  for (const [name, field] of Object.entries(spec.params || {})) {
+    const value = params?.[name];
+    fields[field] = value ?? (NUMBER_FIELDS.has(field) ? 0 : '');
+  }
+  if (spec.target) fields[spec.target] = targetId || '';
+  // Defaults that the block shows when the model has no value yet.
+  return fields;
 }
 
 export function blocksJsonFromInteractions(interactions) {
   return interactions.map((ix, i) => {
-    const trigger = TRIGGERS[ix.trigger.type];
+    const trigger = SPEC.triggers[ix.trigger?.type];
     if (!trigger) return null;
-    const fields = trigger.needsTarget ? { TARGET: ix.targetId || '' } : {};
-    const actionBlocks = ix.actions.map(blockJsonForAction).filter(Boolean);
-    // Chain the actions with "next" links, as Blockly expects.
+    const triggerBlock = { type: `trigger_${ix.trigger.type}`, x: 40, y: 40 + i * 150, fields: fieldsFor(trigger, ix.trigger.params, ix.targetId) };
+    const actionBlocks = (ix.actions || []).map((a) => {
+      const spec = SPEC.actions[a.type];
+      return spec ? { type: `action_${a.type}`, fields: fieldsFor(spec, a.params, a.params?.targetId) } : null;
+    }).filter(Boolean);
     for (let k = actionBlocks.length - 2; k >= 0; k--) actionBlocks[k].next = { block: actionBlocks[k + 1] };
-    const block = { type: trigger.block, x: 40, y: 40 + i * 140, fields };
-    if (actionBlocks.length) block.inputs = { DO: { block: actionBlocks[0] } };
-    return block;
+    if (actionBlocks.length) triggerBlock.inputs = { DO: { block: actionBlocks[0] } };
+    return triggerBlock;
   }).filter(Boolean);
 }
 
 export function loadInteractions(workspace, interactions) {
   workspace.clear();
-  const blocks = blocksJsonFromInteractions(interactions || []);
-  for (const block of blocks) Blockly.serialization.blocks.append(block, workspace, { recordUndo: false });
+  for (const block of blocksJsonFromInteractions(interactions || [])) {
+    Blockly.serialization.blocks.append(block, workspace, { recordUndo: false });
+  }
 }
 
 // ---------- Targets for dropdowns ----------
 
-export function elementsOf(root, pages) {
+export function elementsOf(root) {
   const out = [];
-  const walk = (node) => {
-    if (node.type !== 'section' || node.id !== 'root') out.push({ id: node.id, label: `${node.type}: ${(node.props?.text || node.id).toString().slice(0, 30)}` });
-    (node.children || []).forEach(walk);
+  const walk = (node, isRoot) => {
+    if (!isRoot) out.push({ id: node.id, type: node.type, label: `${node.type}: ${String(node.props?.text || node.props?.placeholder || node.props?.label || node.id).slice(0, 30)}` });
+    (node.children || []).forEach((c) => walk(c, false));
   };
-  walk(root);
+  walk(root, true);
   return out;
 }
 
-export { ACTION_BY_BLOCK, TRIGGER_BY_BLOCK };
+

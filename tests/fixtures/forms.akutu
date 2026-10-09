@@ -1,0 +1,248 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "Forms fixture",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "variables": [
+      {
+        "id": "v1",
+        "name": "who",
+        "value": ""
+      },
+      {
+        "id": "v2",
+        "name": "typed",
+        "value": 0
+      },
+      {
+        "id": "v3",
+        "name": "agreed",
+        "value": "no"
+      }
+    ],
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Forms",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "h1",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Sign up"
+              },
+              "style": {}
+            },
+            {
+              "id": "signup",
+              "type": "form",
+              "props": {},
+              "style": {},
+              "children": [
+                {
+                  "id": "name",
+                  "type": "textInput",
+                  "props": {
+                    "placeholder": "Your name"
+                  },
+                  "style": {}
+                },
+                {
+                  "id": "agree",
+                  "type": "checkbox",
+                  "props": {
+                    "label": "I agree"
+                  },
+                  "style": {}
+                },
+                {
+                  "id": "send",
+                  "type": "button",
+                  "props": {
+                    "text": "Send",
+                    "submit": true
+                  },
+                  "style": {}
+                }
+              ]
+            },
+            {
+              "id": "greeting",
+              "type": "paragraph",
+              "props": {
+                "text": "",
+                "hidden": true
+              },
+              "style": {}
+            },
+            {
+              "id": "status",
+              "type": "paragraph",
+              "props": {
+                "text": "Waiting"
+              },
+              "style": {}
+            },
+            {
+              "id": "pic",
+              "type": "image",
+              "props": {
+                "src": "logo.png",
+                "alt": "Logo"
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i1",
+            "targetId": "signup",
+            "trigger": {
+              "type": "formSubmitted"
+            },
+            "actions": [
+              {
+                "type": "readField",
+                "params": {
+                  "name": "who",
+                  "targetId": "name"
+                }
+              },
+              {
+                "type": "showVariable",
+                "params": {
+                  "name": "who",
+                  "targetId": "greeting"
+                }
+              },
+              {
+                "type": "show",
+                "params": {
+                  "targetId": "greeting"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i2",
+            "targetId": "agree",
+            "trigger": {
+              "type": "checkboxChecked"
+            },
+            "actions": [
+              {
+                "type": "setVariable",
+                "params": {
+                  "name": "agreed",
+                  "value": "yes"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i3",
+            "targetId": "name",
+            "trigger": {
+              "type": "textChanged"
+            },
+            "actions": [
+              {
+                "type": "changeVariable",
+                "params": {
+                  "name": "typed",
+                  "by": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "i4",
+            "trigger": {
+              "type": "variableEquals",
+              "params": {
+                "name": "agreed",
+                "value": "yes"
+              }
+            },
+            "actions": [
+              {
+                "type": "setTextColor",
+                "params": {
+                  "targetId": "h1",
+                  "color": "#B45309"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i5",
+            "trigger": {
+              "type": "timerReached",
+              "params": {
+                "seconds": 1
+              }
+            },
+            "actions": [
+              {
+                "type": "setText",
+                "params": {
+                  "targetId": "status",
+                  "text": "Timer done"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i6",
+            "targetId": "h1",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "wait",
+                "params": {
+                  "seconds": 0.2
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "targetId": "pic",
+                  "dx": 10,
+                  "dy": 20
+                }
+              },
+              {
+                "type": "fadeOut",
+                "params": {
+                  "targetId": "pic"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
