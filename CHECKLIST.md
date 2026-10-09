@@ -28,7 +28,13 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
   - Open: blocks render black. The Classic theme fails ("Invalid colour"), ScratchBlocksTheme renders but without Scratch colours. Needs the colour setup.
   - Open: the bundled click sound fails to decode in headless Chromium (mp3). Harmless for now.
 - [?] **A0. Licence check before copying anything.** scratch-blocks is Apache-2.0 (checked). scratch-gui, the Scratch website UI, is AGPL-3.0, so we must not copy its code. scratch-vm is BSD-3. Confirm which parts we take.
-- [ ] **A2. Map the 5 current green-flag blocks** to scratch-blocks opcodes (when flag clicked, move steps, turn right, repeat, wait).
+- [x] **A2. Map the 5 current green-flag blocks** to scratch-blocks opcodes. Mapping (current → Scratch):
+  - `event_flag` → `event_whenflagclicked` (no inputs)
+  - `motion_move` (field STEPS) → `motion_movesteps` (input STEPS, shadow `math_number` NUM=10)
+  - `motion_turn` (field DEGREES) → `motion_turnright` (input DEGREES, shadow `math_number` NUM=15)
+  - `control_repeat` (field TIMES) → `control_repeat` (input TIMES, shadow `math_number` NUM=10; statement SUBSTACK)
+  - `control_wait` (field SECONDS) → `control_wait` (input DURATION, shadow `math_number` NUM=1)
+  - Note: our fields become Scratch shadow-number inputs, so the file format needs a converter (part of A4).
 - [ ] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Replaces the current Blockly generator.
 - [x] **A3 decision: APPROVED by user (scratch-vm + scratch-storage, both BSD-3).** Original note:  use the Scratch runtime that matches scratch-blocks, so we get full block behavior without writing it ourselves. Cost: heavier, and it replaces our sandbox worker, so we need to keep sandboxing another way. Awaiting your yes.
 - [ ] **A4. Switch Blocks mode to scratch-blocks.** Keep the old path until the new one passes every existing sprite test.
