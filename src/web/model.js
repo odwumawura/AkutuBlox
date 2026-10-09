@@ -170,7 +170,7 @@ function htmlFor(node, pages) {
   }
 }
 
-export function renderPage(page, pages, { site = true } = {}) {
+export function renderPage(page, pages, { site = true, script = '' } = {}) {
   const css = [];
   page.root.children?.forEach((c) => cssFor(c, css));
   const body = (page.root.children || []).map((c) => htmlFor(c, pages)).join('\n');
@@ -186,7 +186,7 @@ ${site ? '<link rel="stylesheet" href="styles.css">' : `<style>${'[hidden]{displ
 <main>
 ${body}
 </main>
-${site ? '<script src="script.js" defer></script>' : ''}
+${site ? '<script src="script.js" defer></script>' : script ? `<script>\n${script}</script>` : ''}
 </body>
 </html>
 `;
@@ -332,6 +332,7 @@ export function siteFiles(project) {
   return files;
 }
 
-export function previewHtml(page, pages) {
-  return renderPage(page, pages, { site: false });
+// The preview runs the same interactions as the exported site, inline.
+export function previewHtml(page, pages, variables = []) {
+  return renderPage(page, pages, { site: false, script: interactionsScript(pages, variables) });
 }

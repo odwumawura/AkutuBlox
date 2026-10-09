@@ -328,7 +328,7 @@ function buildSiteProject() {
 function previewCurrentPage() {
   const project = buildSiteProject();
   const page = project.web.pages.find((p) => p.id === state.webPageId);
-  document.getElementById('preview-frame').srcdoc = previewHtml(page, project.web.pages);
+  document.getElementById('preview-frame').srcdoc = previewHtml(page, project.web.pages, project.web.variables || []);
 }
 
 document.getElementById('preview').addEventListener('click', previewCurrentPage);
