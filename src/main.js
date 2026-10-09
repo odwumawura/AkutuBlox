@@ -186,7 +186,14 @@ const editor = grapesjs.init({
   width: 'auto',
   storageManager: false,
   components: '',
+  // No GrapesJS panels: no device switcher, style manager, layers, or code view. We provide our own controls.
+  panels: { defaults: [] },
   blockManager: { appendTo: '#palette' },
+});
+
+document.getElementById('delete-el').addEventListener('click', () => {
+  const selected = editor.getSelected();
+  if (selected) selected.remove();
 });
 for (const item of PALETTE) editor.Blocks.add(item.id, { label: item.label, content: item.content, category: 'Components' });
 // GrapesJS reports updates after loading too, so only count a change when the canvas really differs from the last snapshot.
