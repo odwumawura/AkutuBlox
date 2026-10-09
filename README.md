@@ -1,0 +1,47 @@
+# AkutuBlox spike
+
+Proof of the two core Phase 1 pieces in one app shell:
+1. **Blocks mode:** Blockly blocks generate JavaScript that drives a sprite on a 480 x 360 stage.
+2. **Web mode:** GrapesJS page builder that exports a standalone `index.html`.
+
+## Requirements
+- Node.js 18 or newer (Node 20 LTS recommended)
+- npm (comes with Node)
+- Git (optional, for version control)
+
+## Run on your PC
+```bash
+git clone <your-repo-url> akutublox-spike
+cd akutublox-spike
+npm install            # first time only; uses package-lock.json
+npm run dev            # open http://localhost:5173
+```
+
+Production check on your PC:
+```bash
+npm run build          # writes dist/
+npm run preview        # open http://localhost:4173
+```
+
+## Host it (static site)
+This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pages, GitHub Pages).
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+- **Node version:** 20
+
+## Files
+- `src/blocks.js`: block definitions and JavaScript generators (learners never see this code)
+- `src/runtime.js`: stage, sprite, and run/stop logic
+- `src/main.js`: shell, mode tabs, GrapesJS setup, export
+- `index.html`, `style.css`: layout
+
+## Findings
+- Blockly 12.5: block definitions via `Blockly.common.defineBlocksWithJsonArray`; generators via `blockly/javascript`.
+- GrapesJS 0.22: visual editor with clean `getHtml()` / `getCss()` export.
+- Production bundle is about 1.8 MB (mostly GrapesJS). Split before Phase 1 ships.
+
+## Known limits (spike only)
+- Generated code runs with `new Function` in the main page. That is not a real sandbox. Phase 1 must run it in a Web Worker or sandboxed iframe.
+- Block colors are placeholders, not the original palette.
+- 5 blocks, 1 sprite, 1 page. No save/open, multi-page, or interactions yet.
+- Click-through testing in a browser is not yet documented.

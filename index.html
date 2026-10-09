@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AkutuBlox spike</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">AkutuBlox <span class="tag">spike</span></div>
+      <nav class="modes" role="tablist">
+        <button id="tab-blocks" class="mode active" role="tab" aria-selected="true">Blocks</button>
+        <button id="tab-web" class="mode" role="tab" aria-selected="false">Web</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="view-blocks" class="view active">
+        <div class="blocks-layout">
+          <div id="blocklyDiv" class="blockly-pane"></div>
+          <div class="stage-pane">
+            <div class="controls">
+              <button id="run" class="primary">Green flag</button>
+              <button id="stop" class="danger">Stop</button>
+            </div>
+            <canvas id="stage" width="480" height="360"></canvas>
+            <pre id="log" class="log"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-web" class="view">
+        <div class="web-layout">
+          <div class="web-editor-pane">
+            <div class="controls">
+              <button id="export" class="primary">Export index.html</button>
+              <button id="preview" class="secondary">Preview export</button>
+            </div>
+            <div id="gjs"></div>
+          </div>
+          <div class="preview-pane">
+            <iframe id="preview-frame" title="Exported page preview" sandbox="allow-scripts"></iframe>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

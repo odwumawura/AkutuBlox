@@ -1,0 +1,26 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1d2433; background: #f3f5f8; }
+.topbar { display: flex; align-items: center; justify-content: space-between; height: 52px; padding: 0 16px; background: #fff; border-bottom: 1px solid #dfe4ec; }
+.brand { font-weight: 700; }
+.tag { font-size: 11px; font-weight: 500; color: #0f766e; background: #ccfbf1; padding: 2px 6px; border-radius: 999px; margin-left: 6px; }
+.modes { display: inline-flex; background: #eef1f6; border-radius: 10px; padding: 3px; }
+.mode { border: 0; background: transparent; padding: 6px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #4a5568; }
+.mode.active { background: #0f766e; color: #fff; }
+main { height: calc(100% - 52px); }
+.view { display: none; height: 100%; }
+.view.active { display: block; }
+.blocks-layout { display: grid; grid-template-columns: 1fr 520px; height: 100%; }
+.blockly-pane { min-height: 0; }
+.stage-pane { padding: 12px; border-left: 1px solid #dfe4ec; background: #fff; display: flex; flex-direction: column; gap: 10px; }
+.controls { display: flex; gap: 8px; }
+button { font: inherit; border-radius: 8px; padding: 8px 14px; border: 1px solid transparent; cursor: pointer; font-weight: 600; }
+button.primary { background: #0f766e; color: #fff; }
+button.secondary { background: #fff; color: #0f766e; border-color: #0f766e; }
+button.danger { background: #b42318; color: #fff; }
+#stage { width: 100%; height: auto; border: 1px solid #dfe4ec; border-radius: 8px; background: #fff; }
+.log { flex: 1; min-height: 80px; margin: 0; font-size: 12px; background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 8px; overflow: auto; }
+.web-layout { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+.web-editor-pane { display: flex; flex-direction: column; padding: 12px; min-width: 0; }
+#gjs { flex: 1; min-height: 0; border: 1px solid #dfe4ec; border-radius: 8px; overflow: hidden; background: #fff; }
+.preview-pane { border-left: 1px solid #dfe4ec; background: #fff; min-width: 0; }
+#preview-frame { width: 100%; height: 100%; border: 0; }
