@@ -23,10 +23,12 @@ export function createStage(canvas, logEl) {
     ctx.fillStyle = backdropColor(backdrop);
     ctx.fillRect(0, 0, W, H);
     for (const s of sprites.values()) {
+      if (!s.visible) continue;
       // Logical coordinates (origin at centre, y up) -> canvas pixels.
       ctx.save();
       ctx.translate(W / 2 + s.x, H / 2 - s.y);
       ctx.rotate(((s.dir - 90) * Math.PI) / 180);
+      ctx.scale(s.size / 100, s.size / 100);
       ctx.fillStyle = costumeColor(s.costume);
       ctx.strokeStyle = backdrop === 'builtin:night' ? '#ffffff' : '#1f2937';
       ctx.lineWidth = 2;
@@ -51,7 +53,7 @@ export function createStage(canvas, logEl) {
       const msg = event.data;
       if (msg.type === 'state') {
         const s = sprites.get(id);
-        if (s) sprites.set(id, { ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir });
+        if (s) sprites.set(id, { ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size });
         draw();
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'error') {
@@ -75,7 +77,7 @@ export function createStage(canvas, logEl) {
     stop();
     for (const [id, start] of starts) {
       const s = sprites.get(id);
-      if (s) sprites.set(id, { ...s, x: start.x, y: start.y, dir: start.dir });
+      if (s) sprites.set(id, { ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size });
     }
     draw();
     log('— green flag');
@@ -84,14 +86,14 @@ export function createStage(canvas, logEl) {
       if (!s) continue;
       const w = spawn(id);
       workers.set(id, w);
-      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir } });
+      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size } });
     }
   }
 
   // list: [{ id, name, x, y, dir, costume }]. Sets where sprites start and draw.
   function setSprites(list) {
     sprites = new Map(list.map((s) => [s.id, { ...s }]));
-    starts = new Map(list.map((s) => [s.id, { x: s.x, y: s.y, dir: s.dir }]));
+    starts = new Map(list.map((s) => [s.id, { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size }]));
     draw();
   }
 

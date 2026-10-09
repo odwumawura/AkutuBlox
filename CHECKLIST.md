@@ -99,6 +99,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Log
 
 - 2026-10-09: Plan written. A1 started: scratch-blocks renders in a spike page; colours still open.
+- 2026-10-09: Blocks batch 3 (looks): show, hide, change size by, set size to. Sprites reset to their starting look on green flag. Tests: `tests/looks_test.py`. Next costume and say bubbles are later batches.
 - 2026-10-09: Blocks batch 2 (motion): go to x/y, change x, set x, change y, set y, point in direction. Stage-edge clamp. Tests: `tests/motion_test.py`, round trip extended.
 - 2026-10-09: A5 done: old Blockly block code removed.
 - 2026-10-09: A4 done: scratch-blocks is the Blocks editor (old one at ?editor=blockly). Round-trip test added.

@@ -43,6 +43,12 @@ export const TOOLBOX_XML = `
     <block type="motion_sety"><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
     <block type="motion_pointindirection"><value name="DIRECTION"><shadow type="math_number"><field name="NUM">90</field></shadow></value></block>
   </category>
+  <category name="Looks" id="looks" colour="#9966FF">
+    <block type="looks_show"/>
+    <block type="looks_hide"/>
+    <block type="looks_changesizeby"><value name="CHANGE"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
+    <block type="looks_setsizeto"><value name="SIZE"><shadow type="math_number"><field name="NUM">100</field></shadow></value></block>
+  </category>
   <category name="Control" id="control" colour="#FFAB19">
     <block type="control_repeat"><value name="TIMES"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
     <block type="control_wait"><value name="DURATION"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
@@ -62,6 +68,10 @@ const MAP = [
   { old: 'motion_changey', scratch: 'motion_changeyby', numberInputs: { DY: 'DY' }, statements: {} },
   { old: 'motion_sety', scratch: 'motion_sety', numberInputs: { Y: 'Y' }, statements: {} },
   { old: 'motion_point', scratch: 'motion_pointindirection', numberInputs: { DIRECTION: 'DIRECTION' }, statements: {} },
+  { old: 'looks_show', scratch: 'looks_show', numberInputs: {}, statements: {} },
+  { old: 'looks_hide', scratch: 'looks_hide', numberInputs: {}, statements: {} },
+  { old: 'looks_changesize', scratch: 'looks_changesizeby', numberInputs: { CHANGE: 'CHANGE' }, statements: {} },
+  { old: 'looks_setsize', scratch: 'looks_setsizeto', numberInputs: { SIZE: 'SIZE' }, statements: {} },
   { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' } },
   { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {} },
 ];

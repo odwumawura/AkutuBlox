@@ -131,7 +131,7 @@ export function loadSpriteScripts(editor, sprite) {
 
 // Stage list for a project: where each sprite starts and which costume it wears.
 export function stageSpritesFromProject(project) {
-  return project.blocks.sprites.map((s) => ({ id: s.id, name: s.name, x: s.x, y: s.y, dir: s.direction, costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star' }));
+  return project.blocks.sprites.map((s) => ({ id: s.id, name: s.name, x: s.x, y: s.y, dir: s.direction, visible: s.visible !== false, size: s.size || 100, costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star' }));
 }
 
 export function loadBlocksProject(project, editor, runtime, selectedId) {

@@ -16,6 +16,10 @@ const GEN = {
   motion_changey: (b) => `await sprite.changeY(${num(b.fields?.DY)});\n`,
   motion_sety: (b) => `await sprite.setY(${num(b.fields?.Y)});\n`,
   motion_point: (b) => `await sprite.point(${num(b.fields?.DIRECTION)});\n`,
+  looks_show: () => 'await sprite.show();\n',
+  looks_hide: () => 'await sprite.hide();\n',
+  looks_changesize: (b) => `await sprite.changeSize(${num(b.fields?.CHANGE)});\n`,
+  looks_setsize: (b) => `await sprite.setSize(${num(b.fields?.SIZE)});\n`,
   control_wait: (b) => `await sprite.wait(${num(b.fields?.SECONDS)});\n`,
 };
 

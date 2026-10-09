@@ -2,7 +2,7 @@
 // The only way to affect the stage is to post state to the main thread and wait for it to draw.
 // Stop = terminate this worker, so even a runaway loop can be stopped.
 
-let state = { x: 0, y: 0, dir: 90 };
+let state = { x: 0, y: 0, dir: 90, visible: true, size: 100 };
 let handlers = [];
 const waiters = []; // FIFO: each posted state waits for one 'continue'
 
@@ -10,6 +10,7 @@ const W = 480;
 const H = 360;
 
 const clampX = (x) => Math.max(-W / 2, Math.min(W / 2, x));
+const clampSize = (n) => Math.max(5, Math.min(500, n));
 const clampY = (y) => Math.max(-H / 2, Math.min(H / 2, y));
 
 function post(msg) {
@@ -58,6 +59,23 @@ const api = {
   },
   async changeY(dy) {
     state.y = clampY(state.y + Number(dy));
+    await publish();
+  },
+  // Looks: visibility and size. Size is a percentage, kept between 5 and 500 like Scratch.
+  async show() {
+    state.visible = true;
+    await publish();
+  },
+  async hide() {
+    state.visible = false;
+    await publish();
+  },
+  async changeSize(delta) {
+    state.size = clampSize(state.size + Number(delta));
+    await publish();
+  },
+  async setSize(size) {
+    state.size = clampSize(Number(size));
     await publish();
   },
   async point(dir) {
