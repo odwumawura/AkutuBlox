@@ -1,6 +1,6 @@
 // Blocks editor on scratch-blocks (Scratch's own editor, Apache-2.0).
-// The saved project keeps the current block JSON format, so the runtime and .akutu files do not change.
-// This file converts both ways: Scratch blocks <-> current block JSON.
+// The saved project keeps our block format (see codegen.js), so the runtime and .akutu files stay simple.
+// This file converts both ways: Scratch blocks <-> our format.
 import * as ScratchBlocks from 'scratch-blocks';
 
 // ---- Scratch colours: scratch-blocks looks up block styles by category name ----
@@ -28,93 +28,180 @@ const ScratchTheme = new ScratchBlocks.Theme('scratch-akutu', blockStyles, {}, {
 ScratchBlocks.ScratchMsgs.setLocale('en');
 ScratchBlocks.setLocale('en');
 
+const num = (name, value) => `<value name="${name}"><shadow type="math_number"><field name="NUM">${value}</field></shadow></value>`;
+const txt = (name, value) => `<value name="${name}"><shadow type="text"><field name="TEXT">${value}</field></shadow></value>`;
+
 export const TOOLBOX_XML = `
 <xml>
   <category name="Events" id="events" colour="#FFBF00">
     <block type="event_whenflagclicked"/>
   </category>
   <category name="Motion" id="motion" colour="#4C97FF">
-    <block type="motion_movesteps"><value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
-    <block type="motion_turnright"><value name="DEGREES"><shadow type="math_number"><field name="NUM">15</field></shadow></value></block>
-    <block type="motion_gotoxy"><value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
-    <block type="motion_changexby"><value name="DX"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
-    <block type="motion_setx"><value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
-    <block type="motion_changeyby"><value name="DY"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
-    <block type="motion_sety"><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
-    <block type="motion_pointindirection"><value name="DIRECTION"><shadow type="math_number"><field name="NUM">90</field></shadow></value></block>
+    <block type="motion_movesteps">${num('STEPS', 10)}</block>
+    <block type="motion_turnright">${num('DEGREES', 15)}</block>
+    <block type="motion_gotoxy">${num('X', 0)}${num('Y', 0)}</block>
+    <block type="motion_changexby">${num('DX', 10)}</block>
+    <block type="motion_setx">${num('X', 0)}</block>
+    <block type="motion_changeyby">${num('DY', 10)}</block>
+    <block type="motion_sety">${num('Y', 0)}</block>
+    <block type="motion_pointindirection">${num('DIRECTION', 90)}</block>
   </category>
   <category name="Looks" id="looks" colour="#9966FF">
     <block type="looks_show"/>
     <block type="looks_hide"/>
-    <block type="looks_changesizeby"><value name="CHANGE"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
-    <block type="looks_setsizeto"><value name="SIZE"><shadow type="math_number"><field name="NUM">100</field></shadow></value></block>
+    <block type="looks_changesizeby">${num('CHANGE', 10)}</block>
+    <block type="looks_setsizeto">${num('SIZE', 100)}</block>
   </category>
   <category name="Control" id="control" colour="#FFAB19">
     <block type="control_forever"/>
-    <block type="control_repeat"><value name="TIMES"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
-    <block type="control_wait"><value name="DURATION"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
+    <block type="control_if"/>
+    <block type="control_wait_until"/>
+    <block type="control_repeat">${num('TIMES', 10)}</block>
+    <block type="control_wait">${num('DURATION', 1)}</block>
+  </category>
+  <category name="Operators" id="operators" colour="#59C059">
+    <block type="operator_add">${num('NUM1', 0)}${num('NUM2', 0)}</block>
+    <block type="operator_subtract">${num('NUM1', 0)}${num('NUM2', 0)}</block>
+    <block type="operator_multiply">${num('NUM1', 0)}${num('NUM2', 0)}</block>
+    <block type="operator_divide">${num('NUM1', 0)}${num('NUM2', 0)}</block>
+    <block type="operator_lt">${txt('OPERAND1', '')}${txt('OPERAND2', '50')}</block>
+    <block type="operator_gt">${txt('OPERAND1', '')}${txt('OPERAND2', '50')}</block>
+    <block type="operator_equals">${txt('OPERAND1', '')}${txt('OPERAND2', '50')}</block>
+    <block type="operator_and"/>
+    <block type="operator_or"/>
+    <block type="operator_not"/>
   </category>
 </xml>`;
 
-// ---- Mapping: current block type <-> Scratch opcode (see CHECKLIST A2) ----
-// numberInputs: current field name -> Scratch input name (a math_number shadow).
-// hat: the event block's body lives in `next` on the Scratch side and in DO on the current side.
+// ---- Mapping: our block type <-> Scratch opcode (see CHECKLIST A2) ----
+// numberInputs: our field name -> Scratch input name. Each one is a literal (shadow) or a reporter.
+// statements: our input name -> Scratch statement input name.
+// boolInputs: our input name -> Scratch input name for a true/false reporter.
+// hat: the event block's body lives in `next` on the Scratch side and in DO in our format.
 const MAP = [
-  { old: 'event_flag', scratch: 'event_whenflagclicked', hat: true, numberInputs: {}, statements: {} },
-  { old: 'motion_move', scratch: 'motion_movesteps', numberInputs: { STEPS: 'STEPS' }, statements: {} },
-  { old: 'motion_turn', scratch: 'motion_turnright', numberInputs: { DEGREES: 'DEGREES' }, statements: {} },
-  { old: 'motion_goto', scratch: 'motion_gotoxy', numberInputs: { X: 'X', Y: 'Y' }, statements: {} },
-  { old: 'motion_changex', scratch: 'motion_changexby', numberInputs: { DX: 'DX' }, statements: {} },
-  { old: 'motion_setx', scratch: 'motion_setx', numberInputs: { X: 'X' }, statements: {} },
-  { old: 'motion_changey', scratch: 'motion_changeyby', numberInputs: { DY: 'DY' }, statements: {} },
-  { old: 'motion_sety', scratch: 'motion_sety', numberInputs: { Y: 'Y' }, statements: {} },
-  { old: 'motion_point', scratch: 'motion_pointindirection', numberInputs: { DIRECTION: 'DIRECTION' }, statements: {} },
-  { old: 'looks_show', scratch: 'looks_show', numberInputs: {}, statements: {} },
-  { old: 'looks_hide', scratch: 'looks_hide', numberInputs: {}, statements: {} },
-  { old: 'looks_changesize', scratch: 'looks_changesizeby', numberInputs: { CHANGE: 'CHANGE' }, statements: {} },
-  { old: 'looks_setsize', scratch: 'looks_setsizeto', numberInputs: { SIZE: 'SIZE' }, statements: {} },
-  { old: 'control_forever', scratch: 'control_forever', numberInputs: {}, statements: { DO: 'SUBSTACK' } },
-  { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' } },
-  { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {} },
+  { old: 'event_flag', scratch: 'event_whenflagclicked', hat: true, numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'motion_move', scratch: 'motion_movesteps', numberInputs: { STEPS: 'STEPS' }, statements: {}, boolInputs: {} },
+  { old: 'motion_turn', scratch: 'motion_turnright', numberInputs: { DEGREES: 'DEGREES' }, statements: {}, boolInputs: {} },
+  { old: 'motion_goto', scratch: 'motion_gotoxy', numberInputs: { X: 'X', Y: 'Y' }, statements: {}, boolInputs: {} },
+  { old: 'motion_changex', scratch: 'motion_changexby', numberInputs: { DX: 'DX' }, statements: {}, boolInputs: {} },
+  { old: 'motion_setx', scratch: 'motion_setx', numberInputs: { X: 'X' }, statements: {}, boolInputs: {} },
+  { old: 'motion_changey', scratch: 'motion_changeyby', numberInputs: { DY: 'DY' }, statements: {}, boolInputs: {} },
+  { old: 'motion_sety', scratch: 'motion_sety', numberInputs: { Y: 'Y' }, statements: {}, boolInputs: {} },
+  { old: 'motion_point', scratch: 'motion_pointindirection', numberInputs: { DIRECTION: 'DIRECTION' }, statements: {}, boolInputs: {} },
+  { old: 'looks_show', scratch: 'looks_show', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'looks_hide', scratch: 'looks_hide', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'looks_changesize', scratch: 'looks_changesizeby', numberInputs: { CHANGE: 'CHANGE' }, statements: {}, boolInputs: {} },
+  { old: 'looks_setsize', scratch: 'looks_setsizeto', numberInputs: { SIZE: 'SIZE' }, statements: {}, boolInputs: {} },
+  { old: 'control_forever', scratch: 'control_forever', numberInputs: {}, statements: { DO: 'SUBSTACK' }, boolInputs: {} },
+  { old: 'control_if', scratch: 'control_if', numberInputs: {}, statements: { DO: 'SUBSTACK' }, boolInputs: { CONDITION: 'CONDITION' } },
+  { old: 'control_wait_until', scratch: 'control_wait_until', numberInputs: {}, statements: {}, boolInputs: { CONDITION: 'CONDITION' } },
+  { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' }, boolInputs: {} },
+  { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
 const byScratch = Object.fromEntries(MAP.map((m) => [m.scratch, m]));
 
-// ---- Scratch -> current JSON ----
-function numberOf(block, inputName) {
-  const input = block.getInput(inputName);
-  const target = input && input.connection && input.connection.targetBlock();
-  if (!target) return 0;
-  return Number(target.getFieldValue('NUM')) || 0;
+// Reporters: same name on both sides. Operands are numbers, or booleans for and/or/not.
+const REPORTERS = {
+  operator_add: ['NUM1', 'NUM2'],
+  operator_subtract: ['NUM1', 'NUM2'],
+  operator_multiply: ['NUM1', 'NUM2'],
+  operator_divide: ['NUM1', 'NUM2'],
+  operator_lt: ['OPERAND1', 'OPERAND2'],
+  operator_gt: ['OPERAND1', 'OPERAND2'],
+  operator_equals: ['OPERAND1', 'OPERAND2'],
+  operator_and: ['OPERAND1', 'OPERAND2'],
+  operator_or: ['OPERAND1', 'OPERAND2'],
+  operator_not: ['OPERAND'],
+};
+// Operands that are text in Scratch (comparisons) use a text shadow; the rest use a number shadow.
+const TEXT_OPERANDS = new Set(['operator_lt', 'operator_gt', 'operator_equals']);
+
+// ---- Reading a Scratch input value ----
+function literalOf(target) {
+  const raw = target.getFieldValue('NUM') ?? target.getFieldValue('TEXT');
+  const n = Number(raw);
+  return { type: 'math_number', fields: { NUM: raw !== '' && Number.isFinite(n) ? n : String(raw ?? '') } };
 }
 
+// Reads a Scratch input into our format: a reporter, a literal, or nothing.
+function inputToOld(block, scratchName) {
+  const target = block.getInputTargetBlock(scratchName);
+  if (!target) return { kind: 'none' };
+  if (target.isShadow()) return { kind: 'literal', value: literalOf(target).fields.NUM };
+  return { kind: 'reporter', block: reporterToOld(target) };
+}
+
+function reporterToOld(block) {
+  const names = REPORTERS[block.type];
+  if (!names) return undefined; // unknown reporters are not saved
+  const out = { type: block.type };
+  for (const name of names) {
+    const input = inputToOld(block, name);
+    if (input.kind === 'reporter') out.inputs = { ...(out.inputs || {}), [name]: { block: input.block } };
+    else if (input.kind === 'literal') out.inputs = { ...(out.inputs || {}), [name]: { block: { type: 'math_number', fields: { NUM: input.value } } } };
+  }
+  return out;
+}
+
+// ---- Scratch -> our format ----
 function chainToOld(block) {
   if (!block) return undefined;
   const m = byScratch[block.type];
   if (!m) return undefined; // unknown block types are not saved
-  const out = { type: m.old, fields: {} };
+  const out = {};
+  out.type = m.old;
   if (m.hat) {
     const body = chainToOld(block.getNextBlock());
     if (body) out.inputs = { DO: { block: body } };
-    delete out.fields;
     return out;
   }
-  for (const [oldField, scratchInput] of Object.entries(m.numberInputs)) {
-    out.fields[oldField] = numberOf(block, scratchInput);
+  for (const [oldName, scratchName] of Object.entries(m.numberInputs)) {
+    const input = inputToOld(block, scratchName);
+    if (input.kind === 'literal') out.fields = { ...(out.fields || {}), [oldName]: input.value };
+    if (input.kind === 'reporter') out.inputs = { ...(out.inputs || {}), [oldName]: { block: input.block } };
   }
-  if (Object.keys(m.statements).length) {
-    const [oldName, scratchName] = Object.entries(m.statements)[0];
+  for (const [oldName, scratchName] of Object.entries(m.boolInputs)) {
+    const input = inputToOld(block, scratchName);
+    if (input.kind === 'reporter') out.inputs = { ...(out.inputs || {}), [oldName]: { block: input.block } };
+  }
+  for (const [oldName, scratchName] of Object.entries(m.statements)) {
     const body = chainToOld(block.getInputTargetBlock(scratchName));
-    if (body) out.inputs = { [oldName]: { block: body } };
+    if (body) out.inputs = { ...(out.inputs || {}), [oldName]: { block: body } };
   }
-  if (!Object.keys(out.fields).length) delete out.fields;
+  if (out.fields && !Object.keys(out.fields).length) delete out.fields;
   const next = chainToOld(block.getNextBlock());
   if (next) out.next = { block: next };
   return out;
 }
 
-// ---- Current JSON -> Scratch XML ----
+// ---- Our format -> Scratch XML ----
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// A reporter (or literal) placed in an input.
+function reporterXml(e, inputName, textShadow = false) {
+  if (e.type === 'math_number') {
+    const v = esc(e.fields?.NUM ?? 0);
+    return textShadow
+      ? `<value name="${inputName}"><shadow type="text"><field name="TEXT">${v}</field></shadow></value>`
+      : `<value name="${inputName}"><shadow type="math_number"><field name="NUM">${v}</field></shadow></value>`;
+  }
+  return `<value name="${inputName}">${blockXml(e)}</value>`;
+}
+
+function operandsXml(e, names) {
+  const textShadow = TEXT_OPERANDS.has(e.type);
+  return names.map((name) => {
+    const reporter = e.inputs?.[name]?.block;
+    return reporter ? reporterXml(reporter, name, textShadow) : '';
+  }).join('');
+}
+
+// Any block (statement or reporter), without its `next` chain.
+function blockXml(e) {
+  if (REPORTERS[e.type]) return `<block type="${e.type}">${operandsXml(e, REPORTERS[e.type])}</block>`;
+  return '';
+}
 
 function chainToXml(json) {
   if (!json) return '';
@@ -125,9 +212,16 @@ function chainToXml(json) {
     inner += `<next>${chainToXml(json.inputs?.DO?.block)}</next>`;
     return `<block type="${m.scratch}">${inner}</block>`;
   }
-  for (const [oldField, scratchInput] of Object.entries(m.numberInputs)) {
-    const v = json.fields?.[oldField] ?? 0;
-    inner += `<value name="${scratchInput}"><shadow type="math_number"><field name="NUM">${esc(v)}</field></shadow></value>`;
+  for (const [oldName, scratchName] of Object.entries(m.numberInputs)) {
+    if (json.inputs?.[oldName]?.block) {
+      inner += reporterXml(json.inputs[oldName].block, scratchName);
+    } else {
+      const v = json.fields?.[oldName] ?? 0;
+      inner += `<value name="${scratchName}"><shadow type="math_number"><field name="NUM">${esc(v)}</field></shadow></value>`;
+    }
+  }
+  for (const [oldName, scratchName] of Object.entries(m.boolInputs)) {
+    if (json.inputs?.[oldName]?.block) inner += `<value name="${scratchName}">${blockXml(json.inputs[oldName].block)}</value>`;
   }
   for (const [oldName, scratchName] of Object.entries(m.statements)) {
     const body = chainToXml(json.inputs?.[oldName]?.block);

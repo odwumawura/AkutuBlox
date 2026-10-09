@@ -5,6 +5,26 @@ import os
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get("BASE", "http://localhost:5173/")
+def lit(n):
+    return {"block": {"type": "math_number", "fields": {"NUM": n}}}
+
+def rep(t, **inputs):
+    return {"block": {"type": t, "inputs": inputs}}
+
+R6 = {"type": "event_flag", "inputs": {"DO": {"block": {
+    "type": "motion_goto",
+    "inputs": {"X": rep("operator_add", NUM1=lit(1), NUM2=lit(2)), "Y": lit(3)},
+    "next": {"block": {
+        "type": "control_if",
+        "inputs": {
+            "CONDITION": rep("operator_and",
+                             OPERAND1=rep("operator_lt", OPERAND1=lit(5), OPERAND2=lit(9)),
+                             OPERAND2=rep("operator_not", OPERAND=rep("operator_equals", OPERAND1=lit(1), OPERAND2=lit(2)))),
+            "DO": {"block": {"type": "motion_changex", "inputs": {"DX": lit(2)}}},
+        },
+    }},
+}}}}
+
 SCRIPTS = [
     {"id": "s-1", "x": 40, "y": 40, "blocks": [{
         "type": "event_flag",
@@ -33,6 +53,7 @@ SCRIPTS = [
                 "next": {"block": {"type": "looks_setsize", "fields": {"SIZE": 80}}}}}}}}}}}]},
     {"id": "s-5", "x": 40, "y": 400, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {
         "type": "control_forever", "inputs": {"DO": {"block": {"type": "motion_turn", "fields": {"DEGREES": 15}}}}}}}}]},
+    {"id": "s-6", "x": 600, "y": 500, "blocks": [R6]},
 ]
 
 failures = []
@@ -57,7 +78,7 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 5, f"five top-level scripts after load (got {len(saved)})")
+    check(len(saved) == 6, f"six top-level scripts after load (got {len(saved)})")
     check(saved and strip_ids(saved[0]["blocks"]) == SCRIPTS[0]["blocks"], "nested script 1 round-trips unchanged")
     check(len(saved) > 1 and strip_ids(saved[1]["blocks"]) == SCRIPTS[1]["blocks"], "script 2 round-trips unchanged")
     check(all(s["x"] == o["x"] and s["y"] == o["y"] for s, o in zip(saved, SCRIPTS)), "script positions round-trip")
