@@ -1,12 +1,12 @@
-// Minimal sprite runtime for the spike. Runs generated code with only the sprite API in scope.
+// Stage for Blocks mode. Generated code runs in a sandboxed Web Worker; this file only draws and relays messages.
 const W = 480;
 const H = 360;
+const START = { x: 0, y: 0, dir: 90 };
 
 export function createStage(canvas, logEl) {
   const ctx = canvas.getContext('2d');
-  const sprite = { x: 0, y: 0, dir: 90 };
-  let token = 0;
-  let handlers = [];
+  let sprite = { ...START };
+  let worker = null;
 
   const log = (msg) => {
     logEl.textContent += msg + '\n';
@@ -18,10 +18,8 @@ export function createStage(canvas, logEl) {
     ctx.fillStyle = '#e8f5e9';
     ctx.fillRect(0, 0, W, H);
     // Logical coordinates (origin at centre, y up) -> canvas pixels.
-    const px = W / 2 + sprite.x;
-    const py = H / 2 - sprite.y;
     ctx.save();
-    ctx.translate(px, py);
+    ctx.translate(W / 2 + sprite.x, H / 2 - sprite.y);
     ctx.rotate(((sprite.dir - 90) * Math.PI) / 180);
     ctx.fillStyle = '#f59e0b';
     ctx.beginPath();
@@ -37,78 +35,46 @@ export function createStage(canvas, logEl) {
     ctx.restore();
   }
 
-  const frame = () => new Promise((r) => requestAnimationFrame(r));
-  const check = (t) => {
-    if (t !== token) throw new Error('stopped');
-  };
-
-  // The only API generated code can call.
-  const api = (t) => ({
-    onFlag(fn) {
-      handlers.push(fn);
-    },
-    async move(steps) {
-      check(t);
-      const rad = (sprite.dir * Math.PI) / 180;
-      sprite.x = Math.max(-W / 2, Math.min(W / 2, sprite.x + steps * Math.sin(rad)));
-      sprite.y = Math.max(-H / 2, Math.min(H / 2, sprite.y + steps * Math.cos(rad)));
-      draw();
-      await frame();
-      check(t);
-    },
-    async turn(deg) {
-      check(t);
-      sprite.dir = (sprite.dir + deg) % 360;
-      draw();
-      await frame();
-      check(t);
-    },
-    async wait(seconds) {
-      check(t);
-      await new Promise((r) => setTimeout(r, seconds * 1000));
-      check(t);
-    },
-  });
+  function spawn() {
+    const w = new Worker(new URL('./sandbox.worker.js', import.meta.url), { type: 'module' });
+    w.onmessage = (event) => {
+      const msg = event.data;
+      if (msg.type === 'state') {
+        sprite = msg.state;
+        draw();
+        w.postMessage({ type: 'continue' });
+      } else if (msg.type === 'error') {
+        log('error: ' + msg.message);
+      }
+    };
+    w.onerror = (event) => log('error: ' + (event.message || 'sandbox failed'));
+    return w;
+  }
 
   function stop() {
-    token++;
-    handlers = [];
-    log('— stopped');
+    if (worker) {
+      worker.terminate();
+      worker = null;
+      log('— stopped');
+    }
   }
 
   function greenFlag(code) {
     stop();
-    const t = ++token;
-    handlers = [];
-    sprite.x = 0;
-    sprite.y = 0;
-    sprite.dir = 90;
+    sprite = { ...START };
     draw();
     log('— green flag');
-    try {
-      // Generated code only contains sprite.* calls from our block generators.
-      const program = new Function('sprite', code);
-      program(api(t));
-    } catch (err) {
-      log('error: ' + err.message);
-      return;
-    }
-    handlers.forEach((fn) =>
-      fn().catch((err) => {
-        if (err.message !== 'stopped') log('error: ' + err.message);
-      }),
-    );
+    worker = spawn();
+    worker.postMessage({ type: 'run', code, state: sprite });
   }
 
   function setSprite(s) {
-    sprite.x = s.x;
-    sprite.y = s.y;
-    sprite.dir = s.dir;
+    sprite = { x: s.x, y: s.y, dir: s.dir };
     draw();
   }
 
   function getSprite() {
-    return { x: sprite.x, y: sprite.y, dir: sprite.dir };
+    return { ...sprite };
   }
 
   draw();

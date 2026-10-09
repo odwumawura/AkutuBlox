@@ -77,6 +77,15 @@ with sync_playwright() as p:
     page.wait_for_timeout(1000)
     check(page.input_value("#project-name") == doc["meta"]["name"], "opening the saved file restores the project name")
 
+    # Sandbox check: code run in the worker cannot see the page.
+    sandbox = page.evaluate("""() => new Promise((resolve) => {
+        const w = new Worker('/src/sandbox.worker.js', { type: 'module' });
+        w.onmessage = (e) => { if (e.data.type === 'state') { w.postMessage({ type: 'continue' }); return; } resolve(e.data.message); w.terminate(); };
+        w.postMessage({ type: 'run', state: { x: 0, y: 0, dir: 90 },
+          code: "sprite.onFlag(async () => { self.postMessage({type:'error', message: [typeof document, typeof localStorage, typeof window, typeof fetch].join(',')}); });" });
+      })""")
+    check(sandbox == "undefined,undefined,undefined,undefined", f"worker sees no document, localStorage, window or fetch (got: {sandbox})")
+
     check(not console_errors, "no browser console errors" + ("" if not console_errors else f": {console_errors[:3]}"))
     browser.close()
 

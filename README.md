@@ -31,7 +31,10 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 
 ## Files
 - `src/blocks.js`: block definitions and JavaScript generators (learners never see this code)
-- `src/runtime.js`: stage, sprite, and run/stop logic
+- `src/runtime.js`: stage drawing and run/stop, relaying messages to the worker
+- `src/sandbox.worker.js`: sandbox that runs generated Blocks code
+- `src/project.js`: project create, validate, save and open (.akutu)
+- `tests/smoke.py`: browser smoke test (Playwright). Needs the dev server on port 5173.
 - `src/main.js`: shell, mode tabs, GrapesJS setup, export
 - `index.html`, `style.css`: layout
 
@@ -41,7 +44,8 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - Production bundle is about 1.8 MB (mostly GrapesJS). Split before Phase 1 ships.
 
 ## Known limits (spike only)
-- Generated code runs with `new Function` in the main page. That is not a real sandbox. Phase 1 must run it in a Web Worker or sandboxed iframe.
+- Generated code runs in a Web Worker (`src/sandbox.worker.js`). Stop terminates the worker. Network globals are shadowed; a Content Security Policy should be added at deploy time to block network access entirely.
 - Block colors are placeholders, not the original palette.
-- 5 blocks, 1 sprite, 1 page. No save/open, multi-page, or interactions yet.
+- 5 blocks, 1 sprite, 1 page. Save/open (.akutu) works; multi-page and interactions are not built yet.
+- Web projects store GrapesJS project data as-is (`editorState`) until the component format is added to the schema.
 - Click-through testing in a browser is not yet documented.
