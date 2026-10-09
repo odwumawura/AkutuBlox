@@ -252,14 +252,17 @@ function deleteVariable(name) {
 document.getElementById('var-add').addEventListener('click', addVariable);
 iws.addChangeListener((e) => {
   if (e.isUiEvent || e.type === Blockly.Events.VIEWPORT_CHANGE) return;
-  if (state.mode === 'web') markDirty();
+  if (state.mode === 'web') {
+    markDirty();
+    schedulePreview();
+  }
 });
 
 let previewTimer = null;
 function schedulePreview() {
   clearTimeout(previewTimer);
   previewTimer = setTimeout(() => {
-    if (state.mode === 'web' && document.getElementById('interactions-pane').hidden) previewCurrentPage();
+    if (state.mode === 'web') previewCurrentPage();
   }, 300);
 }
 
