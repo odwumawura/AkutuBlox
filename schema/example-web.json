@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "My student site",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Welcome",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "style": {
+            "padding": 40,
+            "alignment": "center"
+          },
+          "children": [
+            {
+              "id": "h1",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Welcome to My Site"
+              }
+            },
+            {
+              "id": "btn",
+              "type": "button",
+              "props": {
+                "text": "Get Started"
+              },
+              "style": {
+                "background": "#0F766E",
+                "color": "#FFFFFF",
+                "radius": 8
+              }
+            },
+            {
+              "id": "msg",
+              "type": "paragraph",
+              "props": {
+                "text": "Hello! Welcome to my student site.",
+                "hidden": true
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i1",
+            "targetId": "btn",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "show",
+                "params": {
+                  "targetId": "msg"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "about",
+        "name": "About",
+        "path": "about",
+        "title": "About me",
+        "isHome": false,
+        "root": {
+          "id": "about-root",
+          "type": "section",
+          "children": [
+            {
+              "id": "ah",
+              "type": "heading",
+              "props": {
+                "level": 2,
+                "text": "About me"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "variables": [
+      {
+        "id": "clicks",
+        "name": "clicks",
+        "value": 0,
+        "showMonitor": false
+      }
+    ]
+  }
+}

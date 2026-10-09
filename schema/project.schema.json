@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akutublox.dev/schema/project.v0.1.json",
+  "title": "AkutuBlox project file",
+  "description": "One project = one mode. Switching modes creates or opens a separate project file.",
+  "type": "object",
+  "required": ["schemaVersion", "mode", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "mode": { "enum": ["blocks", "web"] },
+    "meta": {
+      "type": "object",
+      "required": ["name", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "appVersion": { "type": "string" }
+      }
+    },
+    "blocks": { "$ref": "#/$defs/blocksProject" },
+    "web": { "$ref": "#/$defs/webProject" }
+  },
+  "allOf": [
+    { "if": { "properties": { "mode": { "const": "blocks" } } }, "then": { "required": ["blocks"], "not": { "required": ["web"] } } },
+    { "if": { "properties": { "mode": { "const": "web" } } }, "then": { "required": ["web"], "not": { "required": ["blocks"] } } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,64}$" },
+
+    "blocksProject": {
+      "type": "object",
+      "required": ["stage", "sprites"],
+      "additionalProperties": false,
+      "properties": {
+        "stage": {
+          "type": "object",
+          "required": ["logicalWidth", "logicalHeight", "backdrops"],
+          "additionalProperties": false,
+          "properties": {
+            "logicalWidth": { "const": 480 },
+            "logicalHeight": { "const": 360 },
+            "displayPreset": { "enum": ["480x360", "16:9-hd", "custom"], "default": "480x360" },
+            "backdrops": { "type": "array", "items": { "$ref": "#/$defs/asset" }, "minItems": 1 },
+            "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+            "lists": { "type": "array", "items": { "$ref": "#/$defs/variable" } }
+          }
+        },
+        "sprites": { "type": "array", "items": { "$ref": "#/$defs/sprite" } },
+        "customBlocks": { "type": "array", "items": { "$ref": "#/$defs/customBlock" } }
+      }
+    },
+
+    "sprite": {
+      "type": "object",
+      "required": ["id", "name", "x", "y", "direction", "costumes", "scripts"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "x": { "type": "number", "minimum": -240, "maximum": 240 },
+        "y": { "type": "number", "minimum": -180, "maximum": 180 },
+        "direction": { "type": "number", "minimum": -180, "maximum": 180 },
+        "size": { "type": "number", "minimum": 5, "maximum": 500, "default": 100 },
+        "visible": { "type": "boolean", "default": true },
+        "costumes": { "type": "array", "items": { "$ref": "#/$defs/asset" }, "minItems": 1 },
+        "currentCostume": { "type": "integer", "minimum": 0 },
+        "sounds": { "type": "array", "items": { "$ref": "#/$defs/asset" } },
+        "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "scripts": { "type": "array", "items": { "$ref": "#/$defs/script" } }
+      }
+    },
+
+    "script": {
+      "type": "object",
+      "required": ["id", "x", "y", "blocks"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "blocks": {
+          "type": "array",
+          "description": "Blockly serialization of the script (blocks in order, with nested inputs). Opaque to the file format; validated by the block engine.",
+          "items": { "type": "object" }
+        }
+      }
+    },
+
+    "customBlock": {
+      "type": "object",
+      "required": ["id", "name", "inputs", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "inputs": { "type": "array", "items": { "type": "object", "required": ["name", "type"], "properties": { "name": { "type": "string" }, "type": { "enum": ["text", "number", "boolean"] } } } },
+        "returns": { "type": "boolean", "default": false },
+        "body": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+
+    "variable": {
+      "type": "object",
+      "required": ["id", "name", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "value": {},
+        "showMonitor": { "type": "boolean", "default": false }
+      }
+    },
+
+    "asset": {
+      "type": "object",
+      "required": ["id", "name", "type", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "type": { "enum": ["image", "vector", "sound"] },
+        "source": {
+          "type": "string",
+          "description": "Relative path inside the project bundle, e.g. assets/cat.png. Never an external URL.",
+          "pattern": "^assets/[a-zA-Z0-9._-]+$"
+        },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 },
+        "rotationCenterX": { "type": "number" },
+        "rotationCenterY": { "type": "number" }
+      }
+    },
+
+    "webProject": {
+      "type": "object",
+      "required": ["pages"],
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "primaryColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+            "fontPair": { "enum": ["inter-poppins", "nunito-inter", "poppins-nunito"], "default": "inter-poppins" },
+            "spacingScale": { "enum": ["compact", "comfortable", "spacious"], "default": "comfortable" }
+          }
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/page" }
+        },
+        "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } }
+      }
+    },
+
+    "page": {
+      "type": "object",
+      "required": ["id", "name", "path", "title", "root"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "path": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "File name without extension, e.g. 'about' -> about.html. 'index' is the home page." },
+        "title": { "type": "string", "maxLength": 70 },
+        "description": { "type": "string", "maxLength": 160 },
+        "isHome": { "type": "boolean", "default": false },
+        "root": { "$ref": "#/$defs/component" },
+        "interactions": { "type": "array", "items": { "$ref": "#/$defs/interaction" } }
+      }
+    },
+
+    "component": {
+      "type": "object",
+      "required": ["id", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["section", "columns", "container", "heading", "paragraph", "button", "link", "list", "image", "youtube", "form", "textInput", "textArea", "checkbox", "dropdown", "counter", "modal", "timerDisplay", "navigation"] },
+        "props": { "type": "object", "description": "Content and attributes, e.g. text, level, src, alt, href, youtubeId." },
+        "style": { "type": "object", "description": "Only from the fixed style set (padding, margin, color, background, font, size, border, radius, shadow, alignment, flex, grid). No free-form CSS.", "additionalProperties": { "type": ["string", "number"] } },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/component" } }
+      }
+    },
+
+    "interaction": {
+      "type": "object",
+      "required": ["id", "trigger", "actions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "targetId": { "$ref": "#/$defs/id", "description": "Component this applies to. Omit for page-level triggers." },
+        "trigger": { "type": "object", "required": ["type"], "properties": { "type": { "enum": ["clicked", "hovered", "mouseLeft", "pageLoaded", "formSubmitted", "textChanged", "checkboxChecked", "timerReached", "variableEquals", "pageVisited"] }, "params": { "type": "object" } } },
+        "actions": { "type": "array", "items": { "type": "object", "required": ["type"], "properties": { "type": { "enum": ["show", "hide", "toggle", "setText", "setTextColor", "setBackground", "setImage", "move", "fadeIn", "fadeOut", "goToPage", "openLink", "playSound", "setVariable", "changeVariable", "showVariable", "if", "compare", "and", "or", "not", "readField", "clearForm", "showValidation", "startTimer", "stopTimer", "resetTimer", "wait"] }, "params": { "type": "object" } } } }
+      }
+    }
+  }
+}
