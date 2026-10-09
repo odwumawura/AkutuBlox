@@ -3,9 +3,8 @@ import grapesjs from 'grapesjs';
 import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
-import { javascriptGenerator, TOOLBOX } from './blocks.js';
-import { blocklyAdapter, injectBlockly } from './editor-blockly.js';
 import { injectScratch } from './editor-scratch.js';
+import { codeForScripts } from './codegen.js';
 import { COSTUMES, BACKDROPS, newSprite } from './sprites.js';
 import { createStage } from './runtime.js';
 import {
@@ -56,9 +55,8 @@ function markClean() {
 }
 
 // ---------- Blocks mode ----------
-// Blocks editor: scratch-blocks by default; the old Blockly editor stays available with ?editor=blockly.
-const EDITOR_KIND = new URLSearchParams(location.search).get('editor') === 'blockly' ? 'blockly' : 'scratch';
-const blocksEditor = EDITOR_KIND === 'scratch' ? injectScratch(document.getElementById('blocklyDiv')) : injectBlockly('blocklyDiv', TOOLBOX);
+// Blocks editor: scratch-blocks.
+const blocksEditor = injectScratch(document.getElementById('blocklyDiv'));
 blocksEditor.onChange(() => markDirty());
 
 const stage = createStage(document.getElementById('stage'), document.getElementById('log'));
@@ -72,13 +70,9 @@ function saveSelectedSprite() {
   state.project = blocksProjectFromWorkspace(state.project, blocksEditor, stage.getStarts(), blocksUi.selectedId);
 }
 
-// Code for one sprite, generated from its saved scripts on a headless workspace.
+// Code for one sprite, generated from its saved scripts.
 function codeForSprite(sprite) {
-  const headless = new Blockly.Workspace();
-  loadSpriteScripts(blocklyAdapter(headless), sprite);
-  const code = javascriptGenerator.workspaceToCode(headless);
-  headless.dispose();
-  return code;
+  return codeForScripts(sprite.scripts);
 }
 
 function refreshStage() {

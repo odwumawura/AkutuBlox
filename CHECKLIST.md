@@ -37,8 +37,8 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
   - Note: our fields become Scratch shadow-number inputs, so the file format needs a converter (part of A4).
 - [ ] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Replaces the current Blockly generator.
 - [x] **A3 decision: APPROVED by user (scratch-vm + scratch-storage, both BSD-3).** Original note:  use the Scratch runtime that matches scratch-blocks, so we get full block behavior without writing it ourselves. Cost: heavier, and it replaces our sandbox worker, so we need to keep sandboxing another way. Awaiting your yes.
-- [x] **A4. Switch Blocks mode to scratch-blocks.** Done: scratch-blocks is the default. The saved `.akutu` format and the runtime are unchanged; `src/editor-scratch.js` converts both ways. The old Blockly editor stays at `?editor=blockly` until A5. All 9 suites pass on both editors, plus the new `tests/blocks_roundtrip_test.py`.
-- [ ] **A5. Remove the old Blockly block code** (16 blocks, old generator).
+- [x] **A4. Switch Blocks mode to scratch-blocks.** Done: scratch-blocks is the default. The saved `.akutu` format and the runtime are unchanged; `src/editor-scratch.js` converts both ways.  All 9 suites pass on both editors, plus the new `tests/blocks_roundtrip_test.py`.
+- [x] **A5. Remove the old Blockly block code** (done: old editor, `src/blocks.js`, and the scratch-blocks spike page removed; `src/codegen.js` replaces the generator and gives the same code for the same scripts). Blockly stays only for the Web interactions editor.
 - [ ] **A6. Categories** (Phase 1 requires full Scratch 3.0): Motion, Looks, Sound, Events, Control, Sensing, Operators, Variables, My Blocks.
 - [ ] **A7. Sprite features:** visible, size, costume switching, rotation style, drag sprites on the stage.
 - [ ] **A8. Backdrops and costumes from files** (uploads to `assets/`). Needs asset handling and a size limit.
@@ -99,5 +99,6 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Log
 
 - 2026-10-09: Plan written. A1 started: scratch-blocks renders in a spike page; colours still open.
+- 2026-10-09: A5 done: old Blockly block code removed.
 - 2026-10-09: A4 done: scratch-blocks is the Blocks editor (old one at ?editor=blockly). Round-trip test added.
 - 2026-10-09: Web blocks → live preview fixed (B0). Mascot research (M0) done. A3 approved. A1 done (scratch-blocks colours fixed). Drag test in suite.

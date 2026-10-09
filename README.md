@@ -30,17 +30,18 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - **Node version:** 20
 
 ## Files
-- `src/blocks.js`: block definitions and JavaScript generators (learners never see this code)
+- `src/editor-scratch.js`: the Blocks editor (scratch-blocks), with conversion to and from the saved block format
+- `src/codegen.js`: turns saved blocks into the JavaScript each sprite runs (learners never see this code)
 - `src/runtime.js`: stage drawing and run/stop, relaying messages to the worker
 - `src/sandbox.worker.js`: sandbox that runs generated Blocks code
 - `src/project.js`: project create, validate, save and open (.akutu)
 - `src/web/model.js`: web model. Converts the GrapesJS canvas to our component format, renders pages to HTML/CSS, and compiles interactions to JavaScript.
-- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/logic_test.py`: if/else, timers, page visited, clear form (`tests/fixtures/logic.akutu`). `tests/forms_test.py`: forms, variables, timers, wait (`tests/fixtures/forms.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). `tests/drag_test.py`: real mouse drag from the Web interaction flyout; the preview updates live. `tests/blocks_roundtrip_test.py`: every block type survives load and save. Blocks mode uses scratch-blocks by default; the old Blockly editor is at `?editor=blockly` (run the suite with `BASE=http://localhost:5173/?editor=blockly` to test it). All need the dev server on port 5173.
+- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/logic_test.py`: if/else, timers, page visited, clear form (`tests/fixtures/logic.akutu`). `tests/forms_test.py`: forms, variables, timers, wait (`tests/fixtures/forms.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). `tests/drag_test.py`: real mouse drag from the Web interaction flyout; the preview updates live. `tests/blocks_roundtrip_test.py`: every block type survives load and save. Blocks mode uses scratch-blocks. All need the dev server on port 5173.
 - `src/main.js`: shell, mode tabs, GrapesJS setup, export
 - `index.html`, `style.css`: layout
 
 ## Findings
-- Blockly 12.5: block definitions via `Blockly.common.defineBlocksWithJsonArray`; generators via `blockly/javascript`.
+- Blockly 12.5: used only by the Web interactions editor (`iws`). Blocks mode no longer uses it.
 - GrapesJS 0.22: visual editor with clean `getHtml()` / `getCss()` export.
 - Production bundle is about 1.8 MB (mostly GrapesJS). Split before Phase 1 ships.
 

@@ -1,6 +1,5 @@
 """Blocks editor round trip: every block type, nested, survives load -> save unchanged.
-   python3 tests/blocks_roundtrip_test.py            (Blockly editor)
-   BASE='http://localhost:5173/?editor=scratch' python3 tests/blocks_roundtrip_test.py
+   python3 tests/blocks_roundtrip_test.py   (dev server on :5173)
 """
 import os
 from playwright.sync_api import sync_playwright

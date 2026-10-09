@@ -109,7 +109,7 @@ export function newWebPage(index) {
 // ---- Reading the live editors into a project document ----
 
 // Saves the scripts of the sprite being edited, plus the starting place of every sprite (from the stage).
-// `editor` is a blocks editor adapter (see editor-blockly.js / editor-scratch.js).
+// `editor` is a blocks editor adapter (see editor-scratch.js).
 export function blocksProjectFromWorkspace(base, editor, starts, selectedId) {
   const project = structuredClone(base);
   project.meta.updatedAt = nowIso();
