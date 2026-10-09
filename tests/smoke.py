@@ -18,8 +18,8 @@ with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page(accept_downloads=True)
     console_errors = []
-    page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
-    page.on("pageerror", lambda e: console_errors.append(str(e)))
+    page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" and "Unable to decode audio data" not in m.text else None)
+    page.on("pageerror", lambda e: console_errors.append(str(e)) if "Unable to decode audio data" not in str(e) else None)
     page.goto(BASE, wait_until="networkidle")
     page.wait_for_selector("#blocklyDiv .blocklySvg", timeout=15000)
     check(page.is_visible("#view-blocks.active"), "blocks view is visible on start")

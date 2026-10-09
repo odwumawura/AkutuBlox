@@ -4,6 +4,8 @@ import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
 import { javascriptGenerator, TOOLBOX } from './blocks.js';
+import { blocklyAdapter, injectBlockly } from './editor-blockly.js';
+import { injectScratch } from './editor-scratch.js';
 import { COSTUMES, BACKDROPS, newSprite } from './sprites.js';
 import { createStage } from './runtime.js';
 import {
@@ -54,16 +56,10 @@ function markClean() {
 }
 
 // ---------- Blocks mode ----------
-const workspace = Blockly.inject('blocklyDiv', {
-  toolbox: TOOLBOX,
-  trashcan: true,
-  renderer: 'geras',
-  grid: { spacing: 20, length: 3, colour: '#dfe4ec', snap: true },
-});
-workspace.addChangeListener((e) => {
-  if (e.isUiEvent || e.type === Blockly.Events.VIEWPORT_CHANGE) return;
-  markDirty();
-});
+// Blocks editor: scratch-blocks by default; the old Blockly editor stays available with ?editor=blockly.
+const EDITOR_KIND = new URLSearchParams(location.search).get('editor') === 'blockly' ? 'blockly' : 'scratch';
+const blocksEditor = EDITOR_KIND === 'scratch' ? injectScratch(document.getElementById('blocklyDiv')) : injectBlockly('blocklyDiv', TOOLBOX);
+blocksEditor.onChange(() => markDirty());
 
 const stage = createStage(document.getElementById('stage'), document.getElementById('log'));
 
@@ -73,13 +69,13 @@ const blocksUi = { selectedId: null };
 // Saves the sprite being edited back into the project document.
 function saveSelectedSprite() {
   if (!state.project || state.project.mode !== 'blocks' || !blocksUi.selectedId) return;
-  state.project = blocksProjectFromWorkspace(state.project, workspace, stage.getStarts(), blocksUi.selectedId);
+  state.project = blocksProjectFromWorkspace(state.project, blocksEditor, stage.getStarts(), blocksUi.selectedId);
 }
 
 // Code for one sprite, generated from its saved scripts on a headless workspace.
 function codeForSprite(sprite) {
   const headless = new Blockly.Workspace();
-  loadSpriteScripts(headless, sprite);
+  loadSpriteScripts(blocklyAdapter(headless), sprite);
   const code = javascriptGenerator.workspaceToCode(headless);
   headless.dispose();
   return code;
@@ -96,12 +92,7 @@ function selectSprite(id) {
   saveSelectedSprite();
   blocksUi.selectedId = id;
   const sprite = state.project.blocks.sprites.find((s) => s.id === id);
-  Blockly.Events.disable();
-  try {
-    loadSpriteScripts(workspace, sprite);
-  } finally {
-    Blockly.Events.enable();
-  }
+  blocksEditor.quiet(() => loadSpriteScripts(blocksEditor, sprite));
   renderSpriteList();
 }
 
@@ -370,7 +361,7 @@ function showView(mode) {
     el.tabs[key].setAttribute('aria-selected', String(on));
     el.views[key].classList.toggle('active', on);
   }
-  if (mode === 'blocks') Blockly.svgResize(workspace);
+  if (mode === 'blocks') blocksEditor.resize();
 }
 
 function loadIntoEditors(project) {
@@ -379,7 +370,7 @@ function loadIntoEditors(project) {
   try {
     if (project.mode === 'blocks') {
       state.project = project;
-      blocksUi.selectedId = loadBlocksProject(project, workspace, stage, project.blocks.sprites[0].id);
+      blocksUi.selectedId = blocksEditor.quiet(() => loadBlocksProject(project, blocksEditor, stage, project.blocks.sprites[0].id));
       refreshStage();
     } else {
       state.project = project;
@@ -417,7 +408,7 @@ function currentProjectDocument() {
   const base = state.project;
   const project =
     base.mode === 'blocks'
-      ? blocksProjectFromWorkspace(base, workspace, stage.getStarts(), blocksUi.selectedId)
+      ? blocksProjectFromWorkspace(base, blocksEditor, stage.getStarts(), blocksUi.selectedId)
       : buildSiteProject();
   project.meta.name = el.name.value.trim() || 'Untitled';
   return project;
@@ -477,4 +468,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites() };
+window.__akutu = { sprites: () => stage.getSprites(), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };

@@ -1,5 +1,4 @@
 // Project files (.akutu): create, validate, save and load. Follows schema/project.schema.json (v0.1).
-import * as Blockly from 'blockly';
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import schema from '../schema/project.schema.json';
@@ -109,20 +108,13 @@ export function newWebPage(index) {
 
 // ---- Reading the live editors into a project document ----
 
-// Scripts of the workspace as saved data (one entry per top-level block).
-export function scriptsFromWorkspace(workspace) {
-  return workspace.getTopBlocks(true).map((block, i) => {
-    const { x, y } = block.getRelativeToSurfaceXY();
-    return { id: `s-${i + 1}`, x: Math.round(x), y: Math.round(y), blocks: [Blockly.serialization.blocks.save(block)] };
-  });
-}
-
 // Saves the scripts of the sprite being edited, plus the starting place of every sprite (from the stage).
-export function blocksProjectFromWorkspace(base, workspace, starts, selectedId) {
+// `editor` is a blocks editor adapter (see editor-blockly.js / editor-scratch.js).
+export function blocksProjectFromWorkspace(base, editor, starts, selectedId) {
   const project = structuredClone(base);
   project.meta.updatedAt = nowIso();
   for (const sprite of project.blocks.sprites) {
-    if (sprite.id === selectedId) sprite.scripts = scriptsFromWorkspace(workspace);
+    if (sprite.id === selectedId) sprite.scripts = editor.getScripts();
     const start = starts.find((st) => st.id === sprite.id);
     if (start) {
       sprite.x = start.x;
@@ -133,13 +125,8 @@ export function blocksProjectFromWorkspace(base, workspace, starts, selectedId) 
   return project;
 }
 
-export function loadSpriteScripts(workspace, sprite) {
-  workspace.clear();
-  for (const script of sprite.scripts || []) {
-    for (const block of script.blocks) {
-      Blockly.serialization.blocks.append({ ...block, x: script.x, y: script.y }, workspace, { recordUndo: false });
-    }
-  }
+export function loadSpriteScripts(editor, sprite) {
+  editor.setScripts(sprite.scripts || []);
 }
 
 // Stage list for a project: where each sprite starts and which costume it wears.
@@ -147,9 +134,9 @@ export function stageSpritesFromProject(project) {
   return project.blocks.sprites.map((s) => ({ id: s.id, name: s.name, x: s.x, y: s.y, dir: s.direction, costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star' }));
 }
 
-export function loadBlocksProject(project, workspace, runtime, selectedId) {
+export function loadBlocksProject(project, editor, runtime, selectedId) {
   const sprite = project.blocks.sprites.find((s) => s.id === selectedId) || project.blocks.sprites[0];
-  loadSpriteScripts(workspace, sprite);
+  loadSpriteScripts(editor, sprite);
   runtime.setSprites(stageSpritesFromProject(project));
   return sprite.id;
 }

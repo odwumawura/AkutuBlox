@@ -17,8 +17,8 @@ with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page(accept_downloads=True)
     errors = []
-    page.on("pageerror", lambda e: errors.append(str(e)))
-    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)) if "Unable to decode audio data" not in str(e) else None)
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" and "Unable to decode audio data" not in m.text else None)
     page.goto(BASE, wait_until="networkidle")
     page.wait_for_selector("#blocklyDiv .blocklySvg", timeout=15000)
 
@@ -57,7 +57,7 @@ with sync_playwright() as p:
     # Run the exported site in the browser: the button should reveal the message.
     site = browser.new_page()
     site_errors = []
-    site.on("pageerror", lambda e: site_errors.append(str(e)))
+    site.on("pageerror", lambda e: site_errors.append(str(e)) if "Unable to decode audio data" not in str(e) else None)
     site.goto("file://" + os.path.join(out, "index.html"))
     check(site.is_hidden("#msg"), "message is hidden before the click")
     site.click("#btn")

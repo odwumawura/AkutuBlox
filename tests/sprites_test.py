@@ -17,8 +17,8 @@ with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page(accept_downloads=True)
     errors = []
-    page.on("pageerror", lambda e: errors.append(str(e)))
-    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)) if "Unable to decode audio data" not in str(e) else None)
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" and "Unable to decode audio data" not in m.text else None)  # headless Chromium cannot decode scratch-blocks click sounds
     page.goto(BASE, wait_until="networkidle")
     page.wait_for_selector("#blocklyDiv .blocklySvg", timeout=15000)
 
@@ -30,10 +30,10 @@ with sync_playwright() as p:
     page.click("#add-sprite")
     page.wait_for_timeout(300)
     check(page.locator("#sprite-list .sprite-chip").count() == 2, "+ Sprite adds a second sprite")
-    check(page.locator("#blocklyDiv .blocklyDraggable").count() == 0, "a new sprite has no scripts")
+    check(len(page.evaluate("() => window.__akutu.scripts()")) == 0, "a new sprite has no scripts")
     page.locator("#sprite-list .sprite-chip .chip-name").first.click()
     page.wait_for_timeout(300)
-    check(page.locator("#blocklyDiv .blocklyDraggable").count() >= 1, "switching back shows the Cat's scripts")
+    check(len(page.evaluate("() => window.__akutu.scripts()")) >= 1, "switching back shows the Cat's scripts")
 
     # Open the fixture with two sprites and a night backdrop.
     # The project has unsaved changes (the new sprite), so the save prompt asks first.

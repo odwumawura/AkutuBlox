@@ -8,7 +8,7 @@ with sync_playwright() as p:
     b = p.chromium.launch()
     pg = b.new_page()
     errs = []
-    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.on("pageerror", lambda e: errs.append(str(e)) if "Unable to decode audio data" not in str(e) else None)
     pg.goto("http://localhost:5173/", wait_until="networkidle")
     pg.wait_for_selector("#blocklyDiv .blocklySvg", timeout=15000)
     pg.click("#tab-web")
