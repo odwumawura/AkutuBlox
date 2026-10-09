@@ -30,7 +30,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [?] **A0. Licence check before copying anything.** scratch-blocks is Apache-2.0 (checked). scratch-gui, the Scratch website UI, is AGPL-3.0, so we must not copy its code. scratch-vm is BSD-3. Confirm which parts we take.
 - [ ] **A2. Map the 5 current green-flag blocks** to scratch-blocks opcodes (when flag clicked, move steps, turn right, repeat, wait).
 - [ ] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Replaces the current Blockly generator.
-- [?] **A3 decision (recommendation: scratch-vm + scratch-storage, both BSD-3):** use the Scratch runtime that matches scratch-blocks, so we get full block behavior without writing it ourselves. Cost: heavier, and it replaces our sandbox worker, so we need to keep sandboxing another way. Awaiting your yes.
+- [x] **A3 decision: APPROVED by user (scratch-vm + scratch-storage, both BSD-3).** Original note:  use the Scratch runtime that matches scratch-blocks, so we get full block behavior without writing it ourselves. Cost: heavier, and it replaces our sandbox worker, so we need to keep sandboxing another way. Awaiting your yes.
 - [ ] **A4. Switch Blocks mode to scratch-blocks.** Keep the old path until the new one passes every existing sprite test.
 - [ ] **A5. Remove the old Blockly block code** (16 blocks, old generator).
 - [ ] **A6. Categories** (Phase 1 requires full Scratch 3.0): Motion, Looks, Sound, Events, Control, Sensing, Operators, Variables, My Blocks.
@@ -50,7 +50,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [ ] **B7.** Remaining actions: and / or / not, compare as a value, checkbox state, counter and timer components.
 - [ ] **B8.** Content Security Policy for the exported site.
 - [x] **B0. Interaction blocks drive the preview.** Dragging, editing, and deleting blocks now updates the preview live.
-- [ ] **B9.** Web tests for B1–B8 as each lands. Add the real-mouse drag test (drag from the flyout, then check the preview) to the suite.
+- [ ] **B9.** Web tests for B1–B8 as each lands. Real-mouse drag test added (`tests/drag_test.py`).
 
 ## Track C: Text coding and the JS view (Phase 2)
 

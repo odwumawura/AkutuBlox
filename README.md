@@ -35,7 +35,7 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - `src/sandbox.worker.js`: sandbox that runs generated Blocks code
 - `src/project.js`: project create, validate, save and open (.akutu)
 - `src/web/model.js`: web model. Converts the GrapesJS canvas to our component format, renders pages to HTML/CSS, and compiles interactions to JavaScript.
-- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/logic_test.py`: if/else, timers, page visited, clear form (`tests/fixtures/logic.akutu`). `tests/forms_test.py`: forms, variables, timers, wait (`tests/fixtures/forms.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). All need the dev server on port 5173.
+- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/logic_test.py`: if/else, timers, page visited, clear form (`tests/fixtures/logic.akutu`). `tests/forms_test.py`: forms, variables, timers, wait (`tests/fixtures/forms.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). `tests/drag_test.py`: real mouse drag from the Web interaction flyout; the preview updates live. All need the dev server on port 5173.
 - `src/main.js`: shell, mode tabs, GrapesJS setup, export
 - `index.html`, `style.css`: layout
 
