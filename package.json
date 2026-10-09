@@ -13,7 +13,8 @@
     "ajv-formats": "^2.1.1",
     "blockly": "^12.3.0",
     "grapesjs": "^0.22.0",
-    "jszip": "^3.10.2"
+    "jszip": "^3.10.2",
+    "scratch-blocks": "^2.1.32"
   },
   "devDependencies": {
     "vite": "^5.4.0"
