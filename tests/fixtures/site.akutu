@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "Fixture site",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Fixture home",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "h1",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Fixture heading"
+              },
+              "style": {}
+            },
+            {
+              "id": "btn",
+              "type": "button",
+              "props": {
+                "text": "Get Started"
+              },
+              "style": {
+                "background": "#0F766E",
+                "color": "#FFFFFF"
+              }
+            },
+            {
+              "id": "msg",
+              "type": "paragraph",
+              "props": {
+                "text": "Hello from the fixture!",
+                "hidden": true
+              },
+              "style": {}
+            },
+            {
+              "id": "to-about",
+              "type": "link",
+              "props": {
+                "text": "About us",
+                "pageId": "about"
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i1",
+            "targetId": "btn",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "show",
+                "params": {
+                  "targetId": "msg"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "about",
+        "name": "About",
+        "path": "about",
+        "title": "About",
+        "isHome": false,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "ah",
+              "type": "heading",
+              "props": {
+                "level": 2,
+                "text": "About page text"
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": []
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 import * as Blockly from 'blockly';
 import grapesjs from 'grapesjs';
+import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
 import { javascriptGenerator, TOOLBOX } from './blocks.js';
@@ -7,16 +8,18 @@ import { createStage } from './runtime.js';
 import {
   newBlocksProject,
   newWebProject,
+  newWebPage,
   blocksProjectFromWorkspace,
   webProjectFromEditor,
   loadBlocksProject,
-  loadWebProject,
+  loadWebPage,
   downloadProject,
   readProjectFile,
 } from './project.js';
+import { siteFiles, previewHtml, treeFromEditor } from './web/model.js';
 
 // ---------- Shared state ----------
-const state = { mode: 'blocks', project: null, dirty: false, loading: false };
+const state = { mode: 'blocks', project: null, dirty: false, loading: false, webPageId: 'home', webSnapshot: '' };
 
 const el = {
   tabs: { blocks: document.getElementById('tab-blocks'), web: document.getElementById('tab-web') },
@@ -26,6 +29,7 @@ const el = {
   prompt: document.getElementById('prompt'),
   promptText: document.getElementById('prompt-text'),
   openFile: document.getElementById('open-file'),
+  pageSelect: document.getElementById('page-select'),
 };
 
 function markDirty() {
@@ -62,35 +66,70 @@ const editor = grapesjs.init({
   height: '100%',
   width: 'auto',
   storageManager: false,
-  components: '<section style="padding:40px;text-align:center;font-family:Arial,sans-serif"><h1 style="color:#1d2433">Welcome to My Site</h1></section>',
+  components: '',
 });
-editor.on('update', markDirty);
+// GrapesJS reports updates after loading too, so only count a change when the canvas really differs from the last snapshot.
+const webSnapshot = () => JSON.stringify(treeFromEditor(editor));
+editor.on('update', () => {
+  if (state.loading || state.mode !== 'web') return;
+  if (webSnapshot() !== state.webSnapshot) markDirty();
+});
 
-function buildExport() {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Site</title>
-<style>${editor.getCss()}</style>
-</head>
-<body>
-${editor.getHtml()}
-</body>
-</html>`;
+function currentPage() {
+  return state.project.web.pages.find((p) => p.id === state.webPageId);
 }
-document.getElementById('preview').addEventListener('click', () => {
-  document.getElementById('preview-frame').srcdoc = buildExport();
+
+function fillPageSelect() {
+  el.pageSelect.innerHTML = '';
+  for (const p of state.project.web.pages) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.name} (${p.path}.html)`;
+    el.pageSelect.appendChild(opt);
+  }
+  el.pageSelect.value = state.webPageId;
+}
+
+// Save the canvas into the current page, then show another page.
+function switchWebPage(pageId) {
+  state.project = webProjectFromEditor(state.project, editor, state.webPageId);
+  state.webPageId = loadWebPage(state.project, pageId, editor);
+  state.webSnapshot = webSnapshot();
+  fillPageSelect();
+}
+
+el.pageSelect.addEventListener('change', () => switchWebPage(el.pageSelect.value));
+document.getElementById('add-page').addEventListener('click', () => {
+  state.project = webProjectFromEditor(state.project, editor, state.webPageId);
+  const index = state.project.web.pages.length + 1;
+  state.project.web.pages.push(newWebPage(index));
+  markDirty();
+  switchWebPage(`page-${index}`);
 });
-document.getElementById('export').addEventListener('click', () => {
-  const doc = buildExport();
+
+function buildSiteProject() {
+  return webProjectFromEditor(state.project, editor, state.webPageId);
+}
+
+function previewCurrentPage() {
+  const project = buildSiteProject();
+  const page = project.web.pages.find((p) => p.id === state.webPageId);
+  document.getElementById('preview-frame').srcdoc = previewHtml(page, project.web.pages);
+}
+
+document.getElementById('preview').addEventListener('click', previewCurrentPage);
+
+document.getElementById('export').addEventListener('click', async () => {
+  const project = buildSiteProject();
+  const zip = new JSZip();
+  for (const [name, content] of Object.entries(siteFiles(project))) zip.file(name, content);
+  const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html' }));
-  a.download = 'index.html';
+  a.href = URL.createObjectURL(blob);
+  const safe = (project.meta.name || 'site').replace(/[^a-z0-9-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'site';
+  a.download = `${safe}.zip`;
   a.click();
   URL.revokeObjectURL(a.href);
-  document.getElementById('preview-frame').srcdoc = doc;
 });
 
 // ---------- Project lifecycle ----------
@@ -112,7 +151,10 @@ function loadIntoEditors(project) {
     if (project.mode === 'blocks') {
       loadBlocksProject(project, workspace, stage);
     } else {
-      loadWebProject(project, editor);
+      state.project = project;
+      state.webPageId = loadWebPage(project, project.web.pages[0].id, editor);
+      state.webSnapshot = webSnapshot();
+      fillPageSelect();
     }
   } finally {
     Blockly.Events.enable();
@@ -143,7 +185,7 @@ function currentProjectDocument() {
   const project =
     base.mode === 'blocks'
       ? blocksProjectFromWorkspace(base, workspace, stage.getSprite())
-      : webProjectFromEditor(base, editor);
+      : buildSiteProject();
   project.meta.name = el.name.value.trim() || 'Untitled';
   return project;
 }
@@ -155,18 +197,18 @@ function saveCurrent() {
   markClean();
 }
 
+const freshProject = (mode) => (mode === 'blocks' ? newBlocksProject('Untitled blocks project') : newWebProject('Untitled website'));
+
 async function newProject(mode) {
   if (!(await confirmDiscard())) return;
-  const project = mode === 'blocks' ? newBlocksProject('Untitled blocks project') : newWebProject('Untitled website');
-  loadIntoEditors(project);
+  loadIntoEditors(freshProject(mode));
 }
 
 async function switchMode(mode) {
   if (mode === state.mode) return;
   if (!(await confirmDiscard())) return;
   // Each mode has its own project file, so switching starts a new project in that mode.
-  const project = mode === 'blocks' ? newBlocksProject('Untitled blocks project') : newWebProject('Untitled website');
-  loadIntoEditors(project);
+  loadIntoEditors(freshProject(mode));
 }
 
 async function openFile(file) {

@@ -62,11 +62,13 @@ with sync_playwright() as p:
     check(page.is_visible("#view-web.active"), "discard switches to web mode")
     with page.expect_download() as dl2:
         page.click("#export")
-    html_path = os.path.join(tempfile.mkdtemp(), dl2.value.suggested_filename)
-    dl2.value.save_as(html_path)
-    html = open(html_path, encoding="utf-8").read()
-    check("<!doctype html>" in html and "<body>" in html, "web export is a complete HTML document")
-    check("http" not in html.split("<body>")[1] if "<body>" in html else True, "export body has no external URLs")
+    import zipfile
+    zip_path = os.path.join(tempfile.mkdtemp(), dl2.value.suggested_filename)
+    dl2.value.save_as(zip_path)
+    zf = zipfile.ZipFile(zip_path)
+    html = zf.read("index.html").decode("utf-8")
+    check(zip_path.endswith(".zip") and "<!doctype html>" in html and "<body" in html, "web export is a zip with a complete index.html")
+    check("http" not in html.split("<body")[1] if "<body" in html else True, "export body has no external URLs")
 
     # Open the saved blocks file back in.
     page.click("#tab-blocks")

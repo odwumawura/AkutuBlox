@@ -3,6 +3,7 @@ import * as Blockly from 'blockly';
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import schema from '../schema/project.schema.json';
+import { treeFromEditor, toEditor } from './web/model.js';
 
 const APP_VERSION = '0.0.1';
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -80,8 +81,28 @@ export function newWebProject(name = 'Untitled website') {
     meta: { name, createdAt: t, updatedAt: t, appVersion: APP_VERSION },
     web: {
       theme: { primaryColor: '#0F766E', fontPair: 'inter-poppins', spacingScale: 'comfortable' },
-      pages: [{ id: 'home', name: 'Home', path: 'index', title: 'Welcome', isHome: true, root: { id: 'root', type: 'section', children: [] } }],
+      pages: [
+        {
+          id: 'home', name: 'Home', path: 'index', title: 'Welcome', isHome: true,
+          root: {
+            id: 'root', type: 'section', props: {}, style: {}, children: [
+              { id: 'h1', type: 'heading', props: { level: 1, text: 'Welcome to My Site' }, style: { textAlign: 'center' } },
+              { id: 'btn', type: 'button', props: { text: 'Get Started' }, style: { background: '#0F766E', color: '#FFFFFF', borderRadius: 8 } },
+              { id: 'msg', type: 'paragraph', props: { text: 'Hello! Welcome to my student site.', hidden: true }, style: {} },
+            ],
+          },
+          interactions: [{ id: 'i1', targetId: 'btn', trigger: { type: 'clicked' }, actions: [{ type: 'show', params: { targetId: 'msg' } }] }],
+        },
+      ],
     },
+  };
+}
+
+export function newWebPage(index) {
+  return {
+    id: `page-${index}`, name: `Page ${index}`, path: `page-${index}`, title: `Page ${index}`, isHome: false,
+    root: { id: 'root', type: 'section', props: {}, style: {}, children: [] },
+    interactions: [],
   };
 }
 
@@ -102,10 +123,12 @@ export function blocksProjectFromWorkspace(base, workspace, sprite) {
   return project;
 }
 
-export function webProjectFromEditor(base, editor) {
+// Captures the canvas into the current page of the project.
+export function webProjectFromEditor(base, editor, pageId) {
   const project = structuredClone(base);
   project.meta.updatedAt = nowIso();
-  project.web.editorState = editor.getProjectData();
+  const page = project.web.pages.find((p) => p.id === pageId);
+  if (page) page.root = treeFromEditor(editor);
   return project;
 }
 
@@ -122,12 +145,10 @@ export function loadBlocksProject(project, workspace, runtime) {
   runtime.setSprite({ x: cat.x, y: cat.y, dir: cat.direction });
 }
 
-export function loadWebProject(project, editor) {
-  if (project.web.editorState) {
-    editor.loadProjectData(project.web.editorState);
-  } else {
-    editor.setComponents('');
-  }
+export function loadWebPage(project, pageId, editor) {
+  const page = project.web.pages.find((p) => p.id === pageId) || project.web.pages[0];
+  toEditor(editor, page.root);
+  return page.id;
 }
 
 // ---- Files ----

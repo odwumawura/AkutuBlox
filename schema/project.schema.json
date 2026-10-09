@@ -443,10 +443,6 @@
           "items": {
             "$ref": "#/$defs/asset"
           }
-        },
-        "editorState": {
-          "type": "object",
-          "description": "v0.1 spike only: opaque GrapesJS project data. Replaced by the component tree in the next schema version."
         }
       }
     },
