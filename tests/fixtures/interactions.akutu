@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "Interactions fixture",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Interactions",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "h1",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Hover me"
+              },
+              "style": {}
+            },
+            {
+              "id": "btn",
+              "type": "button",
+              "props": {
+                "text": "Toggle"
+              },
+              "style": {}
+            },
+            {
+              "id": "msg",
+              "type": "paragraph",
+              "props": {
+                "text": "Starts empty",
+                "hidden": true
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i1",
+            "targetId": "h1",
+            "trigger": {
+              "type": "hovered"
+            },
+            "actions": [
+              {
+                "type": "setTextColor",
+                "params": {
+                  "targetId": "h1",
+                  "color": "#FF0000"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i2",
+            "targetId": "h1",
+            "trigger": {
+              "type": "mouseLeft"
+            },
+            "actions": [
+              {
+                "type": "setTextColor",
+                "params": {
+                  "targetId": "h1",
+                  "color": "#1D2433"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i3",
+            "targetId": "btn",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "toggle",
+                "params": {
+                  "targetId": "msg"
+                }
+              },
+              {
+                "type": "setBackground",
+                "params": {
+                  "targetId": "btn",
+                  "color": "#0F766E"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i4",
+            "trigger": {
+              "type": "pageLoaded"
+            },
+            "actions": [
+              {
+                "type": "setText",
+                "params": {
+                  "targetId": "msg",
+                  "text": "Loaded"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

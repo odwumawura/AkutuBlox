@@ -17,6 +17,14 @@ import {
   readProjectFile,
 } from './project.js';
 import { siteFiles, previewHtml, treeFromEditor } from './web/model.js';
+import {
+  INTERACTION_TOOLBOX,
+  registerInteractionBlocks,
+  setInteractionContext,
+  interactionsFromWorkspace,
+  loadInteractions,
+  elementsOf,
+} from './web/interactions.js';
 
 // ---------- Shared state ----------
 const state = { mode: 'blocks', project: null, dirty: false, loading: false, webPageId: 'home', webSnapshot: '' };
@@ -70,13 +78,35 @@ const editor = grapesjs.init({
 });
 // GrapesJS reports updates after loading too, so only count a change when the canvas really differs from the last snapshot.
 const webSnapshot = () => JSON.stringify(treeFromEditor(editor));
+// Interaction editor (right pane). Hidden until the Interactions tab is opened.
+registerInteractionBlocks();
+const iws = Blockly.inject('iblockly', {
+  toolbox: INTERACTION_TOOLBOX,
+  trashcan: true,
+  renderer: 'geras',
+  grid: { spacing: 20, length: 3, colour: '#dfe4ec', snap: true },
+});
+setInteractionContext({
+  targets: () => elementsOf(treeFromEditor(editor)),
+  pages: () => (state.project?.web?.pages || []),
+});
+iws.addChangeListener((e) => {
+  if (e.isUiEvent || e.type === Blockly.Events.VIEWPORT_CHANGE) return;
+  if (state.mode === 'web') markDirty();
+});
+
 editor.on('update', () => {
   if (state.loading || state.mode !== 'web') return;
   if (webSnapshot() !== state.webSnapshot) markDirty();
 });
 
-function currentPage() {
-  return state.project.web.pages.find((p) => p.id === state.webPageId);
+// Reads the canvas and the interaction blocks into the project document.
+function captureWeb() {
+  const project = webProjectFromEditor(state.project, editor, state.webPageId);
+  const page = project.web.pages.find((p) => p.id === state.webPageId);
+  if (page) page.interactions = interactionsFromWorkspace(iws);
+  state.project = project;
+  return project;
 }
 
 function fillPageSelect() {
@@ -92,15 +122,28 @@ function fillPageSelect() {
 
 // Save the canvas into the current page, then show another page.
 function switchWebPage(pageId) {
-  state.project = webProjectFromEditor(state.project, editor, state.webPageId);
+  captureWeb();
   state.webPageId = loadWebPage(state.project, pageId, editor);
+  showInteractionsFor(state.webPageId);
   state.webSnapshot = webSnapshot();
   fillPageSelect();
 }
 
+function showInteractionsFor(pageId) {
+  const page = state.project.web.pages.find((p) => p.id === pageId);
+  state.loading = true;
+  Blockly.Events.disable();
+  try {
+    loadInteractions(iws, page?.interactions || []);
+  } finally {
+    Blockly.Events.enable();
+    state.loading = false;
+  }
+}
+
 el.pageSelect.addEventListener('change', () => switchWebPage(el.pageSelect.value));
 document.getElementById('add-page').addEventListener('click', () => {
-  state.project = webProjectFromEditor(state.project, editor, state.webPageId);
+  captureWeb();
   const index = state.project.web.pages.length + 1;
   state.project.web.pages.push(newWebPage(index));
   markDirty();
@@ -108,7 +151,7 @@ document.getElementById('add-page').addEventListener('click', () => {
 });
 
 function buildSiteProject() {
-  return webProjectFromEditor(state.project, editor, state.webPageId);
+  return captureWeb();
 }
 
 function previewCurrentPage() {
@@ -118,6 +161,18 @@ function previewCurrentPage() {
 }
 
 document.getElementById('preview').addEventListener('click', previewCurrentPage);
+
+function showSideTab(name) {
+  const isInteractions = name === 'interactions';
+  document.getElementById('side-preview').classList.toggle('active', !isInteractions);
+  document.getElementById('side-interactions').classList.toggle('active', isInteractions);
+  document.getElementById('preview-frame').hidden = isInteractions;
+  document.getElementById('interactions-pane').hidden = !isInteractions;
+  if (isInteractions) Blockly.svgResize(iws);
+  else previewCurrentPage();
+}
+document.getElementById('side-preview').addEventListener('click', () => showSideTab('preview'));
+document.getElementById('side-interactions').addEventListener('click', () => showSideTab('interactions'));
 
 document.getElementById('export').addEventListener('click', async () => {
   const project = buildSiteProject();
@@ -153,6 +208,7 @@ function loadIntoEditors(project) {
     } else {
       state.project = project;
       state.webPageId = loadWebPage(project, project.web.pages[0].id, editor);
+      showInteractionsFor(state.webPageId);
       state.webSnapshot = webSnapshot();
       fillPageSelect();
     }

@@ -170,6 +170,14 @@ const ACTION_JS = {
     return p ? `window.location.href = ${JSON.stringify(p.path + '.html')};` : '';
   },
   openLink: (a) => `window.open(${JSON.stringify(String(a.params.url || ''))}, '_blank', 'noopener');`,
+  setTextColor: (a) => {
+    const c = a.params.color;
+    return /^#[0-9a-fA-F]{6}$/.test(c || '') ? `{ const x = document.getElementById(${JSON.stringify(a.params.targetId)}); if (x) x.style.color = ${JSON.stringify(c)}; }` : '';
+  },
+  setBackground: (a) => {
+    const c = a.params.color;
+    return /^#[0-9a-fA-F]{6}$/.test(c || '') ? `{ const x = document.getElementById(${JSON.stringify(a.params.targetId)}); if (x) x.style.backgroundColor = ${JSON.stringify(c)}; }` : '';
+  },
 };
 
 function actionsJs(actions, pages) {
@@ -181,8 +189,9 @@ export function interactionsScript(pages) {
     const parts = (page.interactions || []).map((ix) => {
       const body = actionsJs(ix.actions, pages);
       if (ix.trigger.type === 'pageLoaded') return `    ${body}`;
-      if (ix.trigger.type === 'clicked' && safeId(ix.targetId)) {
-        return `    { const t = document.getElementById(${JSON.stringify(ix.targetId)}); if (t) t.addEventListener('click', function () { ${body} }); }`;
+      const events = { clicked: 'click', hovered: 'mouseenter', mouseLeft: 'mouseleave' };
+      if (events[ix.trigger.type] && safeId(ix.targetId)) {
+        return `    { const t = document.getElementById(${JSON.stringify(ix.targetId)}); if (t) t.addEventListener('${events[ix.trigger.type]}', function () { ${body} }); }`;
       }
       return `    /* unsupported trigger: ${ix.trigger.type} */`;
     });

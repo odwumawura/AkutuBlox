@@ -35,7 +35,7 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - `src/sandbox.worker.js`: sandbox that runs generated Blocks code
 - `src/project.js`: project create, validate, save and open (.akutu)
 - `src/web/model.js`: web model. Converts the GrapesJS canvas to our component format, renders pages to HTML/CSS, and compiles interactions to JavaScript.
-- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test with the fixture in `tests/fixtures/site.akutu`. Both need the dev server on port 5173.
+- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). All need the dev server on port 5173.
 - `src/main.js`: shell, mode tabs, GrapesJS setup, export
 - `index.html`, `style.css`: layout
 
@@ -48,7 +48,7 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - Generated code runs in a Web Worker (`src/sandbox.worker.js`). Stop terminates the worker. Network globals are shadowed; a Content Security Policy should be added at deploy time to block network access entirely.
 - Block colors are placeholders, not the original palette.
 - 5 blocks, 1 sprite, 1 page. Save/open (.akutu) works; multi-page and interactions are not built yet.
-- Web interactions: only the starter set is built (triggers: clicked, page loaded; actions: show, hide, toggle, set text, go to page, open link). The Blockly interaction editor is not built yet.
+- Web interactions: 4 triggers (clicked, hovered, mouse leaves, page loads) and 8 actions (show, hide, toggle, set text, set text color, set background, go to page, open link) are built, in the Interactions tab. Still to build from the spec: form, text-change, checkbox, timer, variable, and page-visited triggers; fade, move, image, sound, variable, logic, form, timer, and wait actions.
 - Hidden elements are hidden on the canvas too, so they can't be selected there yet.
 - No page rename or delete yet.
 - Click-through testing in a browser is not yet documented.

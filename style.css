@@ -33,3 +33,12 @@ button.danger { background: #b42318; color: #fff; }
 .prompt h2 { margin: 0 0 8px; font-size: 18px; }
 .prompt p { margin: 0 0 16px; color: #4a5568; }
 .prompt-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 0; list-style: none; }
+
+.side-pane { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid #dfe4ec; background: #fff; }
+.side-tabs { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #dfe4ec; }
+.side-tabs .mode { padding: 4px 12px; font-size: 14px; }
+#preview-frame { flex: 1; min-height: 0; }
+.interactions-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.interactions-pane[hidden], #preview-frame[hidden] { display: none; }
+.hint { margin: 8px 12px 0; font-size: 13px; color: #4a5568; }
+#iblockly { flex: 1; min-height: 0; }

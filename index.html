@@ -48,8 +48,16 @@
             </div>
             <div id="gjs"></div>
           </div>
-          <div class="preview-pane">
+          <div class="side-pane">
+            <div class="side-tabs" role="tablist">
+              <button id="side-preview" class="mode active" role="tab" aria-selected="true">Preview</button>
+              <button id="side-interactions" class="mode" role="tab" aria-selected="false">Interactions</button>
+            </div>
             <iframe id="preview-frame" title="Exported page preview" sandbox="allow-scripts"></iframe>
+            <div id="interactions-pane" class="interactions-pane" hidden>
+              <p class="hint">Build what happens on this page. Pick an element in each block.</p>
+              <div id="iblockly"></div>
+            </div>
           </div>
         </div>
       </section>
