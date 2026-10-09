@@ -229,6 +229,14 @@ const ACTION_JS = {
   showVariable: (a) => (VAR_NAME.test(a.params.name || '') ? `{ const x = ${el(a.params.targetId)}; if (x) x.textContent = String(vars[${JSON.stringify(a.params.name)}]); }` : ''),
   readField: (a) => (VAR_NAME.test(a.params.name || '') ? `{ const x = ${el(a.params.targetId)}; if (x) setVar(${JSON.stringify(a.params.name)}, x.value); }` : ''),
   wait: (a) => `await sleep(${Math.max(0, num(a.params.seconds))} * 1000);`,
+  if: (a, pages) => (VAR_NAME.test(a.params.name || '')
+    ? `if (cmp(vars[${JSON.stringify(a.params.name)}], ${JSON.stringify(String(a.params.op || 'equals'))}, ${JSON.stringify(String(a.params.value ?? ''))})) {\n      ${actionsJs(a.params.then || [], pages)}\n    } else {\n      ${actionsJs(a.params.else || [], pages)}\n    }`
+    : ''),
+  startTimer: (a) => (VAR_NAME.test(a.params.name || '') ? `startTimer(${JSON.stringify(a.params.name)});` : ''),
+  stopTimer: (a) => (VAR_NAME.test(a.params.name || '') ? `stopTimer(${JSON.stringify(a.params.name)});` : ''),
+  resetTimer: (a) => (VAR_NAME.test(a.params.name || '') ? `resetTimer(${JSON.stringify(a.params.name)});` : ''),
+  clearForm: (a) => `{ const x = ${el(a.params.targetId)}; if (x && x.reset) x.reset(); }`,
+  showValidation: (a) => `{ const x = ${el(a.params.targetId)}; if (x) { x.setCustomValidity(${JSON.stringify(String(a.params.message ?? ''))}); x.reportValidity(); x.addEventListener('input', function clear() { x.setCustomValidity(''); x.removeEventListener('input', clear); }); } }`,
 };
 
 function actionsJs(actions, pages) {
@@ -249,6 +257,10 @@ function triggerJs(ix, body, pages) {
   const type = ix.trigger.type;
   const params = ix.trigger.params || {};
   if (type === 'pageLoaded') return `(async function () {\n      ${body}\n    })();`;
+  if (type === 'pageVisited') {
+    if (!safeId(params.pageId)) return '';
+    return `if (before.indexOf(${JSON.stringify(params.pageId)}) !== -1) { (async function () {\n      ${body}\n    })(); }`;
+  }
   if (type === 'timerReached') return `setTimeout(async function () {\n      ${body}\n    }, ${Math.max(0, num(params.seconds))} * 1000);`;
   if (type === 'variableEquals') {
     if (!VAR_NAME.test(params.name || '')) return '';
@@ -275,11 +287,34 @@ export function interactionsScript(pages, variables = []) {
     'const watchers = [];',
     'const sleep = function (ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); };',
     'const num = function (v) { return Number(v) || 0; };',
+    'function cmp(a, op, b) {',
+    '  const x = String(a), y = String(b);',
+    '  const nx = Number(x), ny = Number(y);',
+    "  const numeric = x !== '' && y !== '' && !isNaN(nx) && !isNaN(ny);",
+    '  const l = numeric ? nx : x, r = numeric ? ny : y;',
+    '  switch (op) {',
+    "    case 'equals': return l === r;",
+    "    case 'notEquals': return l !== r;",
+    "    case 'less': return l < r;",
+    "    case 'greater': return l > r;",
+    "    case 'lessOrEqual': return l <= r;",
+    "    case 'greaterOrEqual': return l >= r;",
+    '    default: return false;',
+    '  }',
+    '}',
+    'const timers = {};',
+    'function startTimer(n) { if (timers[n]) return; timers[n] = setInterval(function () { setVar(n, num(vars[n]) + 1); }, 1000); }',
+    'function stopTimer(n) { clearInterval(timers[n]); delete timers[n]; }',
+    'function resetTimer(n) { stopTimer(n); setVar(n, 0); }',
+    "function visitsBefore() { try { return JSON.parse(sessionStorage.getItem('akutu-visits') || '[]'); } catch (e) { return []; } }",
+    "function recordVisit(id) { try { const v = visitsBefore(); if (v.indexOf(id) === -1) v.push(id); sessionStorage.setItem('akutu-visits', JSON.stringify(v)); } catch (e) {} }",
     'function setVar(name, value) {',
     '  vars[name] = value;',
     '  watchers.forEach(function (w) { if (w.name === name && String(value) === w.value) w.run(); });',
     '}',
     "document.addEventListener('DOMContentLoaded', function () {",
+    "  const before = visitsBefore();",
+    "  recordVisit(document.body.dataset.page);",
     blocks.filter(Boolean).join('\n'),
     '});',
     '',

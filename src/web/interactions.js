@@ -4,17 +4,23 @@ import * as Blockly from 'blockly';
 
 const TRIGGER_COLOR = '#0E7490';
 const ACTION_COLOR = '#1D4ED8';
+const LOGIC_COLOR = '#7C3AED';
 const VARIABLE_COLOR = '#B45309';
+
+// Comparison operators for "if". Values are the model's names; labels are what the learner sees.
+const OPS = [['=', 'equals'], ['≠', 'notEquals'], ['<', 'less'], ['>', 'greater'], ['≤', 'lessOrEqual'], ['≥', 'greaterOrEqual']];
 
 // One table drives the blocks, the toolbox, and both conversions.
 //   parts: text strings, or { field, menu } (dropdown), { field, text } (text input), { field, number } (number input)
 //   params: model param name -> field name. For triggers, "target" is the element the trigger is attached to.
+//   branches: statement inputs whose blocks become nested action lists (params.then / params.else)
 const SPEC = {
   triggers: {
-    clicked: { label: 'When', parts: ['when', { field: 'TARGET', menu: 'element' }, 'is clicked'], target: 'TARGET' },
+    clicked: { parts: ['when', { field: 'TARGET', menu: 'element' }, 'is clicked'], target: 'TARGET' },
     hovered: { parts: ['when', { field: 'TARGET', menu: 'element' }, 'is hovered'], target: 'TARGET' },
     mouseLeft: { parts: ['when', { field: 'TARGET', menu: 'element' }, 'mouse leaves'], target: 'TARGET' },
     pageLoaded: { parts: ['when the page loads'] },
+    pageVisited: { parts: ['when the visitor has been to', { field: 'PAGE', menu: 'page' }], params: { pageId: 'PAGE' } },
     formSubmitted: { parts: ['when', { field: 'TARGET', menu: 'form' }, 'is submitted'], target: 'TARGET' },
     textChanged: { parts: ['when text changes in', { field: 'TARGET', menu: 'textInput' }], target: 'TARGET' },
     checkboxChecked: { parts: ['when', { field: 'TARGET', menu: 'checkbox' }, 'is ticked'], target: 'TARGET' },
@@ -39,6 +45,16 @@ const SPEC = {
     setVariable: { parts: ['set variable', { field: 'NAME', menu: 'variable' }, 'to', { field: 'VALUE', text: '0' }], params: { name: 'NAME', value: 'VALUE' } },
     changeVariable: { parts: ['change variable', { field: 'NAME', menu: 'variable' }, 'by', { field: 'BY', number: 1 }], params: { name: 'NAME', by: 'BY' } },
     readField: { parts: ['set variable', { field: 'NAME', menu: 'variable' }, 'to the text in', { field: 'TARGET', menu: 'textInput' }], params: { name: 'NAME', targetId: 'TARGET' } },
+    clearForm: { parts: ['clear form', { field: 'TARGET', menu: 'form' }], params: { targetId: 'TARGET' } },
+    showValidation: { parts: ['show message', { field: 'TEXT', text: 'Please check this' }, 'on', { field: 'TARGET', menu: 'textInput' }], params: { targetId: 'TARGET', message: 'TEXT' } },
+    startTimer: { parts: ['start timer', { field: 'NAME', menu: 'variable' }], params: { name: 'NAME' } },
+    stopTimer: { parts: ['stop timer', { field: 'NAME', menu: 'variable' }], params: { name: 'NAME' } },
+    resetTimer: { parts: ['reset timer', { field: 'NAME', menu: 'variable' }], params: { name: 'NAME' } },
+    if: {
+      parts: ['if variable', { field: 'NAME', menu: 'variable' }, { field: 'OP', menu: 'op' }, { field: 'VALUE', text: '0' }],
+      params: { name: 'NAME', op: 'OP', value: 'VALUE' },
+      branches: { then: 'THEN', else: 'ELSE' },
+    },
     wait: { parts: ['wait', { field: 'SECONDS', number: 1 }, 'seconds'], params: { seconds: 'SECONDS' } },
   },
 };
@@ -55,6 +71,7 @@ export function setInteractionContext({ elements, pages, variables }) {
 const KIND_OF_TYPE = { form: 'form', textInput: 'textInput', checkbox: 'checkbox', image: 'image' };
 function menuFor(kind) {
   return () => {
+    if (kind === 'op') return OPS;
     let list;
     if (kind === 'element') list = context.elements().map((e) => [e.label, e.id]);
     else if (kind === 'page') list = context.pages().map((p) => [p.name, p.id]);
@@ -69,22 +86,24 @@ export function registerInteractionBlocks() {
   if (registered) return;
   registered = true;
   const add = (kind, name, spec) => {
-    const colour = kind === 'trigger' ? TRIGGER_COLOR : ACTION_COLOR;
+    const colour = kind === 'trigger' ? TRIGGER_COLOR : spec.branches ? LOGIC_COLOR : ACTION_COLOR;
     Blockly.Blocks[`${kind}_${name}`] = {
       init() {
         const row = this.appendDummyInput();
         for (const part of spec.parts) {
           if (typeof part === 'string') row.appendField(part);
-          else if (part.menu) {
-            const menu = part.menu === 'variable' ? menuFor('variable') : menuFor(part.menu);
-            row.appendField(new Blockly.FieldDropdown(menu), part.field);
-          } else if (part.number !== undefined) row.appendField(new Blockly.FieldNumber(part.number), part.field);
+          else if (part.menu) row.appendField(new Blockly.FieldDropdown(menuFor(part.menu)), part.field);
+          else if (part.number !== undefined) row.appendField(new Blockly.FieldNumber(part.number), part.field);
           else row.appendField(new Blockly.FieldTextInput(part.text), part.field);
         }
         if (kind === 'trigger') this.appendStatementInput('DO');
         else {
           this.setPreviousStatement(true);
           this.setNextStatement(true);
+        }
+        if (spec.branches) {
+          this.appendStatementInput(spec.branches.then).appendField('then');
+          this.appendStatementInput(spec.branches.else).appendField('else');
         }
         this.setColour(colour);
         this.setTooltip(kind === 'trigger' ? 'Runs the blocks inside when this happens.' : 'Does this step.');
@@ -102,8 +121,9 @@ export const INTERACTION_TOOLBOX = {
     { kind: 'category', name: 'When', colour: TRIGGER_COLOR, contents: blocksOf('trigger', Object.keys(SPEC.triggers)) },
     { kind: 'category', name: 'Show & hide', colour: ACTION_COLOR, contents: blocksOf('action', ['show', 'hide', 'toggle', 'fadeIn', 'fadeOut', 'move']) },
     { kind: 'category', name: 'Change', colour: ACTION_COLOR, contents: blocksOf('action', ['setText', 'setTextColor', 'setBackground', 'setImage']) },
-    { kind: 'category', name: 'Forms & sound', colour: ACTION_COLOR, contents: blocksOf('action', ['readField', 'playSound', 'openLink', 'goToPage']) },
-    { kind: 'category', name: 'Variables & time', colour: VARIABLE_COLOR, contents: blocksOf('action', ['setVariable', 'changeVariable', 'showVariable', 'wait']) },
+    { kind: 'category', name: 'Decide', colour: LOGIC_COLOR, contents: blocksOf('action', ['if']) },
+    { kind: 'category', name: 'Forms & sound', colour: ACTION_COLOR, contents: blocksOf('action', ['readField', 'clearForm', 'showValidation', 'playSound', 'openLink', 'goToPage']) },
+    { kind: 'category', name: 'Variables & time', colour: VARIABLE_COLOR, contents: blocksOf('action', ['setVariable', 'changeVariable', 'showVariable', 'startTimer', 'stopTimer', 'resetTimer', 'wait']) },
   ],
 };
 
@@ -118,6 +138,23 @@ function paramsFromBlock(block, params) {
   return out;
 }
 
+// Reads a chain of action blocks (following "next") into a list, recursing into if/else branches.
+function actionsFromChain(first) {
+  const out = [];
+  for (let b = first; b; b = b.getNextBlock()) {
+    const type = ACTION_BY_BLOCK[b.type];
+    if (!type) continue;
+    const spec = SPEC.actions[type];
+    const params = paramsFromBlock(b, spec.params || {});
+    if (spec.branches) {
+      params.then = actionsFromChain(b.getInputTargetBlock(spec.branches.then));
+      params.else = actionsFromChain(b.getInputTargetBlock(spec.branches.else));
+    }
+    out.push({ type, params });
+  }
+  return out;
+}
+
 export function interactionsFromWorkspace(workspace) {
   const result = [];
   for (const top of workspace.getTopBlocks(true)) {
@@ -126,14 +163,7 @@ export function interactionsFromWorkspace(workspace) {
     const spec = SPEC.triggers[type];
     const trigger = { type };
     if (spec.params) trigger.params = paramsFromBlock(top, spec.params);
-    const actions = [];
-    let b = top.getInputTargetBlock('DO');
-    while (b) {
-      const aType = ACTION_BY_BLOCK[b.type];
-      if (aType) actions.push({ type: aType, params: paramsFromBlock(b, SPEC.actions[aType].params || {}) });
-      b = b.getNextBlock();
-    }
-    const ix = { id: `ix-${result.length + 1}`, trigger, actions };
+    const ix = { id: `ix-${result.length + 1}`, trigger, actions: actionsFromChain(top.getInputTargetBlock('DO')) };
     if (spec.target) ix.targetId = String(top.getFieldValue(spec.target) || '');
     result.push(ix);
   }
@@ -149,22 +179,36 @@ function fieldsFor(spec, params, targetId) {
     fields[field] = value ?? (NUMBER_FIELDS.has(field) ? 0 : '');
   }
   if (spec.target) fields[spec.target] = targetId || '';
-  // Defaults that the block shows when the model has no value yet.
   return fields;
+}
+
+// Builds the block JSON for a list of actions, chained with "next". Returns undefined for an empty list.
+function chainJson(actions) {
+  const blocks = (actions || []).map((a) => {
+    const spec = SPEC.actions[a.type];
+    if (!spec) return null;
+    const json = { type: `action_${a.type}`, fields: fieldsFor(spec, a.params, a.params?.targetId) };
+    if (spec.branches) {
+      json.inputs = {};
+      const then = chainJson(a.params?.then);
+      const otherwise = chainJson(a.params?.else);
+      if (then) json.inputs[spec.branches.then] = { block: then };
+      if (otherwise) json.inputs[spec.branches.else] = { block: otherwise };
+    }
+    return json;
+  }).filter(Boolean);
+  for (let k = blocks.length - 2; k >= 0; k--) blocks[k].next = { block: blocks[k + 1] };
+  return blocks[0];
 }
 
 export function blocksJsonFromInteractions(interactions) {
   return interactions.map((ix, i) => {
     const trigger = SPEC.triggers[ix.trigger?.type];
     if (!trigger) return null;
-    const triggerBlock = { type: `trigger_${ix.trigger.type}`, x: 40, y: 40 + i * 150, fields: fieldsFor(trigger, ix.trigger.params, ix.targetId) };
-    const actionBlocks = (ix.actions || []).map((a) => {
-      const spec = SPEC.actions[a.type];
-      return spec ? { type: `action_${a.type}`, fields: fieldsFor(spec, a.params, a.params?.targetId) } : null;
-    }).filter(Boolean);
-    for (let k = actionBlocks.length - 2; k >= 0; k--) actionBlocks[k].next = { block: actionBlocks[k + 1] };
-    if (actionBlocks.length) triggerBlock.inputs = { DO: { block: actionBlocks[0] } };
-    return triggerBlock;
+    const json = { type: `trigger_${ix.trigger.type}`, x: 40, y: 40 + i * 150, fields: fieldsFor(trigger, ix.trigger.params, ix.targetId) };
+    const first = chainJson(ix.actions);
+    if (first) json.inputs = { DO: { block: first } };
+    return json;
   }).filter(Boolean);
 }
 
@@ -186,5 +230,3 @@ export function elementsOf(root) {
   walk(root, true);
   return out;
 }
-
-

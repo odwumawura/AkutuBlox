@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "Logic fixture",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "variables": [
+      {
+        "id": "v1",
+        "name": "points",
+        "value": 0
+      },
+      {
+        "id": "v2",
+        "name": "clock",
+        "value": 0
+      },
+      {
+        "id": "v3",
+        "name": "who",
+        "value": ""
+      }
+    ],
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Logic",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "title",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Logic lab"
+              },
+              "style": {}
+            },
+            {
+              "id": "status",
+              "type": "paragraph",
+              "props": {
+                "text": "Ready"
+              },
+              "style": {}
+            },
+            {
+              "id": "add",
+              "type": "button",
+              "props": {
+                "text": "Add point"
+              },
+              "style": {}
+            },
+            {
+              "id": "treset",
+              "type": "button",
+              "props": {
+                "text": "Reset clock"
+              },
+              "style": {}
+            },
+            {
+              "id": "signup",
+              "type": "form",
+              "props": {},
+              "style": {},
+              "children": [
+                {
+                  "id": "name",
+                  "type": "textInput",
+                  "props": {
+                    "placeholder": "Your name"
+                  },
+                  "style": {}
+                },
+                {
+                  "id": "send",
+                  "type": "button",
+                  "props": {
+                    "text": "Send",
+                    "submit": true
+                  },
+                  "style": {}
+                }
+              ]
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i1",
+            "targetId": "add",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "changeVariable",
+                "params": {
+                  "name": "points",
+                  "by": 1
+                }
+              },
+              {
+                "type": "if",
+                "params": {
+                  "name": "points",
+                  "op": "greaterOrEqual",
+                  "value": "3",
+                  "then": [
+                    {
+                      "type": "setText",
+                      "params": {
+                        "targetId": "status",
+                        "text": "Winner!"
+                      }
+                    }
+                  ],
+                  "else": [
+                    {
+                      "type": "setText",
+                      "params": {
+                        "targetId": "status",
+                        "text": "Keep going"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "i2",
+            "trigger": {
+              "type": "pageLoaded"
+            },
+            "actions": [
+              {
+                "type": "startTimer",
+                "params": {
+                  "name": "clock"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i3",
+            "trigger": {
+              "type": "variableEquals",
+              "params": {
+                "name": "clock",
+                "value": "2"
+              }
+            },
+            "actions": [
+              {
+                "type": "setText",
+                "params": {
+                  "targetId": "status",
+                  "text": "Two seconds"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i4",
+            "targetId": "signup",
+            "trigger": {
+              "type": "formSubmitted"
+            },
+            "actions": [
+              {
+                "type": "readField",
+                "params": {
+                  "name": "who",
+                  "targetId": "name"
+                }
+              },
+              {
+                "type": "clearForm",
+                "params": {
+                  "targetId": "signup"
+                }
+              }
+            ]
+          },
+          {
+            "id": "i5",
+            "targetId": "treset",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "resetTimer",
+                "params": {
+                  "name": "clock"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "about",
+        "name": "About",
+        "path": "about",
+        "title": "About",
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "about-title",
+              "type": "heading",
+              "props": {
+                "level": 2,
+                "text": "About"
+              },
+              "style": {}
+            },
+            {
+              "id": "welcome",
+              "type": "paragraph",
+              "props": {
+                "text": "Welcome back!",
+                "hidden": true
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "j1",
+            "trigger": {
+              "type": "pageVisited",
+              "params": {
+                "pageId": "home"
+              }
+            },
+            "actions": [
+              {
+                "type": "show",
+                "params": {
+                  "targetId": "welcome"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

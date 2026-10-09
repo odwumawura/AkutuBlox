@@ -35,7 +35,7 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - `src/sandbox.worker.js`: sandbox that runs generated Blocks code
 - `src/project.js`: project create, validate, save and open (.akutu)
 - `src/web/model.js`: web model. Converts the GrapesJS canvas to our component format, renders pages to HTML/CSS, and compiles interactions to JavaScript.
-- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/forms_test.py`: forms, variables, timers, wait (`tests/fixtures/forms.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). All need the dev server on port 5173.
+- `tests/smoke.py`: Blocks and project browser test (Playwright). `tests/web_test.py`: multi-page web test (`tests/fixtures/site.akutu`). `tests/logic_test.py`: if/else, timers, page visited, clear form (`tests/fixtures/logic.akutu`). `tests/forms_test.py`: forms, variables, timers, wait (`tests/fixtures/forms.akutu`). `tests/interactions_test.py`: interaction blocks round trip and exported behavior (`tests/fixtures/interactions.akutu`). All need the dev server on port 5173.
 - `src/main.js`: shell, mode tabs, GrapesJS setup, export
 - `index.html`, `style.css`: layout
 
@@ -48,7 +48,7 @@ This is a static site, so any static host works (Netlify, Vercel, Cloudflare Pag
 - Generated code runs in a Web Worker (`src/sandbox.worker.js`). Stop terminates the worker. Network globals are shadowed; a Content Security Policy should be added at deploy time to block network access entirely.
 - Block colors are placeholders, not the original palette.
 - 5 blocks, 1 sprite, 1 page. Save/open (.akutu) works; multi-page and interactions are not built yet.
-- Web interactions: 9 triggers (clicked, hovered, mouse leaves, page loads, form submitted, text changed, checkbox ticked, timer, variable equals) and 17 actions (show, hide, toggle, fade in/out, move, set text, show variable, set text/background color, set picture, play sound, go to page, open link, set variable, change variable, set variable from a text field, wait). Page visited, if/compare/and/or/not, clear form, validation messages, timers, and counters are still to build.
+- Web interactions: 10 triggers (clicked, hovered, mouse leaves, page loads, page visited, form submitted, text changed, checkbox ticked, timer, variable equals) and 22 actions, including if/else on a variable, timers (start, stop, reset), clear form, and validation messages. Still to build: and/or/not, compare as a value block, the counter and timer display components, and checking a checkbox's state with a block.
 - Web components: heading, paragraph, button (incl. submit), link, section, image, form, text input, checkbox. Palette in the Web tab. Variables are project-wide (Interactions tab).
 - Hidden elements are hidden on the canvas too, so they can't be selected there yet.
 - No page rename or delete yet.
