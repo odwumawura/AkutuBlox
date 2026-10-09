@@ -12,6 +12,14 @@
         <button id="tab-blocks" class="mode active" role="tab" aria-selected="true">Blocks</button>
         <button id="tab-web" class="mode" role="tab" aria-selected="false">Web</button>
       </nav>
+      <div class="project">
+        <input id="project-name" aria-label="Project name" value="Untitled" />
+        <span id="dirty" class="dirty" hidden>Unsaved</span>
+        <button id="new" class="secondary">New</button>
+        <button id="open" class="secondary">Open</button>
+        <input id="open-file" type="file" accept=".akutu,application/json" hidden />
+        <button id="save" class="primary">Save</button>
+      </div>
     </header>
 
     <main>
@@ -44,6 +52,18 @@
         </div>
       </section>
     </main>
+
+    <dialog id="prompt" class="prompt">
+      <form method="dialog">
+        <h2>Save changes?</h2>
+        <p id="prompt-text">Your project has changes that aren't saved.</p>
+        <menu class="prompt-actions">
+          <button value="cancel" class="secondary">Cancel</button>
+          <button value="discard" class="danger">Don't save</button>
+          <button value="save" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
 
     <script type="module" src="/src/main.js"></script>
   </body>

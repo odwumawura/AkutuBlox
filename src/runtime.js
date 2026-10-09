@@ -4,7 +4,7 @@ const H = 360;
 
 export function createStage(canvas, logEl) {
   const ctx = canvas.getContext('2d');
-  const sprite = { x: 0, y: 0, dir: 90, running: 0 };
+  const sprite = { x: 0, y: 0, dir: 90 };
   let token = 0;
   let handlers = [];
 
@@ -17,7 +17,7 @@ export function createStage(canvas, logEl) {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = '#e8f5e9';
     ctx.fillRect(0, 0, W, H);
-    // Convert logical coordinates (origin at centre, y up) to canvas pixels.
+    // Logical coordinates (origin at centre, y up) -> canvas pixels.
     const px = W / 2 + sprite.x;
     const py = H / 2 - sprite.y;
     ctx.save();
@@ -42,7 +42,7 @@ export function createStage(canvas, logEl) {
     if (t !== token) throw new Error('stopped');
   };
 
-  // The API generated code can call. Nothing else is in scope.
+  // The only API generated code can call.
   const api = (t) => ({
     onFlag(fn) {
       handlers.push(fn);
@@ -50,10 +50,8 @@ export function createStage(canvas, logEl) {
     async move(steps) {
       check(t);
       const rad = (sprite.dir * Math.PI) / 180;
-      sprite.x += steps * Math.sin(rad);
-      sprite.y += steps * Math.cos(rad);
-      sprite.x = Math.max(-W / 2, Math.min(W / 2, sprite.x));
-      sprite.y = Math.max(-H / 2, Math.min(H / 2, sprite.y));
+      sprite.x = Math.max(-W / 2, Math.min(W / 2, sprite.x + steps * Math.sin(rad)));
+      sprite.y = Math.max(-H / 2, Math.min(H / 2, sprite.y + steps * Math.cos(rad)));
       draw();
       await frame();
       check(t);
@@ -88,7 +86,7 @@ export function createStage(canvas, logEl) {
     draw();
     log('— green flag');
     try {
-      // Generated code only contains sprite.* calls built from our block generators.
+      // Generated code only contains sprite.* calls from our block generators.
       const program = new Function('sprite', code);
       program(api(t));
     } catch (err) {
@@ -102,6 +100,17 @@ export function createStage(canvas, logEl) {
     );
   }
 
+  function setSprite(s) {
+    sprite.x = s.x;
+    sprite.y = s.y;
+    sprite.dir = s.dir;
+    draw();
+  }
+
+  function getSprite() {
+    return { x: sprite.x, y: sprite.y, dir: sprite.dir };
+  }
+
   draw();
-  return { greenFlag, stop, state: sprite };
+  return { greenFlag, stop, setSprite, getSprite };
 }

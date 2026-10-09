@@ -6,7 +6,8 @@ const BLOCK_JSON = [
   {
     type: 'event_flag',
     message0: 'when green flag clicked',
-    nextStatement: null,
+    message1: '%1',
+    args1: [{ type: 'input_statement', name: 'DO' }],
     colour: 185,
     tooltip: 'Runs the script when the green flag is pressed.',
   },
@@ -54,7 +55,7 @@ Blockly.common.defineBlocksWithJsonArray(BLOCK_JSON);
 
 // Generators: blocks -> JavaScript. The learner never sees this code.
 javascriptGenerator.forBlock['event_flag'] = function (block) {
-  const body = javascriptGenerator.blockToCode(block.getNextBlock()) || '';
+  const body = javascriptGenerator.statementToCode(block, 'DO');
   return `sprite.onFlag(async () => {\n${body}});\n`;
 };
 
