@@ -19,6 +19,13 @@ SCRIPTS = [
         }}},
     }]},
     {"id": "s-2", "x": 300, "y": 120, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "control_wait", "fields": {"SECONDS": 0.5}}}}}]},
+    {"id": "s-3", "x": 40, "y": 260, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {
+        "type": "motion_goto", "fields": {"X": 10, "Y": -5},
+        "next": {"block": {"type": "motion_changex", "fields": {"DX": 3},
+            "next": {"block": {"type": "motion_setx", "fields": {"X": -20},
+                "next": {"block": {"type": "motion_changey", "fields": {"DY": 4},
+                    "next": {"block": {"type": "motion_sety", "fields": {"Y": 7},
+                        "next": {"block": {"type": "motion_point", "fields": {"DIRECTION": 45}}}}}}}}}}}}}}}]},
 ]
 
 failures = []
@@ -43,7 +50,7 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 2, f"two top-level scripts after load (got {len(saved)})")
+    check(len(saved) == 3, f"three top-level scripts after load (got {len(saved)})")
     check(saved and strip_ids(saved[0]["blocks"]) == SCRIPTS[0]["blocks"], "nested script 1 round-trips unchanged")
     check(len(saved) > 1 and strip_ids(saved[1]["blocks"]) == SCRIPTS[1]["blocks"], "script 2 round-trips unchanged")
     check(all(s["x"] == o["x"] and s["y"] == o["y"] for s, o in zip(saved, SCRIPTS)), "script positions round-trip")

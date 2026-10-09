@@ -9,6 +9,9 @@ const waiters = []; // FIFO: each posted state waits for one 'continue'
 const W = 480;
 const H = 360;
 
+const clampX = (x) => Math.max(-W / 2, Math.min(W / 2, x));
+const clampY = (y) => Math.max(-H / 2, Math.min(H / 2, y));
+
 function post(msg) {
   self.postMessage(msg);
 }
@@ -33,6 +36,32 @@ const api = {
   },
   async turn(deg) {
     state.dir = (state.dir + deg) % 360;
+    await publish();
+  },
+  // Absolute and relative placement. Same stage bounds as move().
+  async goTo(x, y) {
+    state.x = clampX(Number(x));
+    state.y = clampY(Number(y));
+    await publish();
+  },
+  async setX(x) {
+    state.x = clampX(Number(x));
+    await publish();
+  },
+  async setY(y) {
+    state.y = clampY(Number(y));
+    await publish();
+  },
+  async changeX(dx) {
+    state.x = clampX(state.x + Number(dx));
+    await publish();
+  },
+  async changeY(dy) {
+    state.y = clampY(state.y + Number(dy));
+    await publish();
+  },
+  async point(dir) {
+    state.dir = ((Number(dir) % 360) + 360) % 360;
     await publish();
   },
   async wait(seconds) {

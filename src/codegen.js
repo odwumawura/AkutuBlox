@@ -10,6 +10,12 @@ const GEN = {
     const times = Math.max(0, Math.floor(num(b.fields?.TIMES)));
     return `for (let i = 0; i < ${times}; i++) {\n${body(b, 'DO')}}\n`;
   },
+  motion_goto: (b) => `await sprite.goTo(${num(b.fields?.X)}, ${num(b.fields?.Y)});\n`,
+  motion_changex: (b) => `await sprite.changeX(${num(b.fields?.DX)});\n`,
+  motion_setx: (b) => `await sprite.setX(${num(b.fields?.X)});\n`,
+  motion_changey: (b) => `await sprite.changeY(${num(b.fields?.DY)});\n`,
+  motion_sety: (b) => `await sprite.setY(${num(b.fields?.Y)});\n`,
+  motion_point: (b) => `await sprite.point(${num(b.fields?.DIRECTION)});\n`,
   control_wait: (b) => `await sprite.wait(${num(b.fields?.SECONDS)});\n`,
 };
 

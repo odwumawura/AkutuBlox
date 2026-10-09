@@ -36,6 +36,12 @@ export const TOOLBOX_XML = `
   <category name="Motion" id="motion" colour="#4C97FF">
     <block type="motion_movesteps"><value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
     <block type="motion_turnright"><value name="DEGREES"><shadow type="math_number"><field name="NUM">15</field></shadow></value></block>
+    <block type="motion_gotoxy"><value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_changexby"><value name="DX"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
+    <block type="motion_setx"><value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_changeyby"><value name="DY"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
+    <block type="motion_sety"><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_pointindirection"><value name="DIRECTION"><shadow type="math_number"><field name="NUM">90</field></shadow></value></block>
   </category>
   <category name="Control" id="control" colour="#FFAB19">
     <block type="control_repeat"><value name="TIMES"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
@@ -50,6 +56,12 @@ const MAP = [
   { old: 'event_flag', scratch: 'event_whenflagclicked', hat: true, numberInputs: {}, statements: {} },
   { old: 'motion_move', scratch: 'motion_movesteps', numberInputs: { STEPS: 'STEPS' }, statements: {} },
   { old: 'motion_turn', scratch: 'motion_turnright', numberInputs: { DEGREES: 'DEGREES' }, statements: {} },
+  { old: 'motion_goto', scratch: 'motion_gotoxy', numberInputs: { X: 'X', Y: 'Y' }, statements: {} },
+  { old: 'motion_changex', scratch: 'motion_changexby', numberInputs: { DX: 'DX' }, statements: {} },
+  { old: 'motion_setx', scratch: 'motion_setx', numberInputs: { X: 'X' }, statements: {} },
+  { old: 'motion_changey', scratch: 'motion_changeyby', numberInputs: { DY: 'DY' }, statements: {} },
+  { old: 'motion_sety', scratch: 'motion_sety', numberInputs: { Y: 'Y' }, statements: {} },
+  { old: 'motion_point', scratch: 'motion_pointindirection', numberInputs: { DIRECTION: 'DIRECTION' }, statements: {} },
   { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' } },
   { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {} },
 ];
