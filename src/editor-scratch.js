@@ -30,6 +30,13 @@ let spriteNames = [];
 export function setSpriteNames(names) {
   spriteNames = names;
 }
+
+// Costume names of the sprite being edited (the switch-costume dropdown lists them).
+let costumeNames = [];
+export function setCostumeNames(names) {
+  costumeNames = names;
+}
+const costumeOptions = () => (costumeNames.length ? costumeNames.map((n) => [n, n]) : [['(no costumes)', '']]);
 const spriteOptions = () => (spriteNames.length ? spriteNames.map((n) => [n, n]) : [['(no sprites)', '']]);
 
 ScratchBlocks.defineBlocksWithJsonArray([
@@ -40,6 +47,13 @@ ScratchBlocks.defineBlocksWithJsonArray([
     args0: [{ type: 'field_dropdown', name: 'SPRITE', options: spriteOptions }],
     extensions: ['colours_sensing', 'output_boolean'],
   },
+  // Our own type name: scratch-blocks already has looks_switchcostumeto with its own menu.
+  {
+    type: 'looks_switchcostume',
+    message0: 'switch costume to %1',
+    args0: [{ type: 'field_dropdown', name: 'COSTUME', options: costumeOptions }],
+    extensions: ['colours_looks', 'shape_statement'],
+  },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -47,6 +61,24 @@ ScratchBlocks.setLocale('en');
 
 const num = (name, value) => `<value name="${name}"><shadow type="math_number"><field name="NUM">${value}</field></shadow></value>`;
 const txt = (name, value) => `<value name="${name}"><shadow type="text"><field name="TEXT">${value}</field></shadow></value>`;
+
+const looksBlocks = () => `
+    <block type="looks_show"/>
+    <block type="looks_hide"/>
+    <block type="looks_changesizeby">${num('CHANGE', 10)}</block>
+    <block type="looks_setsizeto">${num('SIZE', 100)}</block>
+    <block type="looks_switchcostume"/>
+    <block type="looks_nextcostume"/>
+`;
+const sensingBlocks = () => `
+    <block type="sensing_mousex"/>
+    <block type="sensing_mousey"/>
+    <block type="sensing_mousedown"/>
+    <block type="sensing_touchingedge"/>
+    <block type="sensing_touchingsprite"/>
+`;
+
+const flyoutFrom = (xml) => Array.from(new DOMParser().parseFromString(`<xml xmlns="http://www.w3.org/1999/xhtml">${xml}</xml>`, 'text/xml').documentElement.children);
 
 export const TOOLBOX_XML = `
 <xml>
@@ -63,11 +95,7 @@ export const TOOLBOX_XML = `
     <block type="motion_sety">${num('Y', 0)}</block>
     <block type="motion_pointindirection">${num('DIRECTION', 90)}</block>
   </category>
-  <category name="Looks" id="looks" colour="#9966FF">
-    <block type="looks_show"/>
-    <block type="looks_hide"/>
-    <block type="looks_changesizeby">${num('CHANGE', 10)}</block>
-    <block type="looks_setsizeto">${num('SIZE', 100)}</block>
+  <category name="Looks" id="looks" colour="#9966FF">${looksBlocks()}
   </category>
   <category name="Control" id="control" colour="#FFAB19">
     <block type="control_forever"/>
@@ -76,12 +104,7 @@ export const TOOLBOX_XML = `
     <block type="control_repeat">${num('TIMES', 10)}</block>
     <block type="control_wait">${num('DURATION', 1)}</block>
   </category>
-  <category name="Sensing" id="sensing" colour="#5CB1D6">
-    <block type="sensing_mousex"/>
-    <block type="sensing_mousey"/>
-    <block type="sensing_mousedown"/>
-    <block type="sensing_touchingedge"/>
-    <block type="sensing_touchingsprite"/>
+  <category name="Sensing" id="sensing" colour="#5CB1D6">${sensingBlocks()}
   </category>
   <category name="Variables" id="variables" colour="#FF8C1A" custom="VARIABLE"/>
   <category name="Operators" id="operators" colour="#59C059">
@@ -97,6 +120,7 @@ export const TOOLBOX_XML = `
     <block type="operator_not"/>
   </category>
 </xml>`;
+
 
 // ---- Mapping: our block type <-> Scratch opcode (see CHECKLIST A2) ----
 // numberInputs: our field name -> Scratch input name. Each one is a literal (shadow) or a reporter.
@@ -123,6 +147,8 @@ const MAP = [
   { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' }, boolInputs: {} },
   { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {}, boolInputs: {} },
   { old: 'data_setvariableto', scratch: 'data_setvariableto', numberInputs: { VALUE: 'VALUE' }, textInputs: ['VALUE'], varField: 'VARIABLE', statements: {}, boolInputs: {} },
+  { old: 'looks_switchcostume', scratch: 'looks_switchcostume', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'COSTUME' },
+  { old: 'looks_nextcostume', scratch: 'looks_nextcostume', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
@@ -204,6 +230,7 @@ function chainToOld(block) {
   const out = {};
   out.type = m.old;
   if (m.varField) out.fields = { VARIABLE: variableName(block) };
+  if (m.dropdown) out.fields = { [m.dropdown]: block.getFieldValue(m.dropdown) ?? '' };
   if (m.hat) {
     const body = chainToOld(block.getNextBlock());
     if (body) out.inputs = { DO: { block: body } };
@@ -269,6 +296,7 @@ function chainToXml(json) {
     return `<block type="${m.scratch}">${inner}</block>`;
   }
   if (m.varField) inner += variableField(json.fields?.VARIABLE);
+  if (m.dropdown) inner += `<field name="${m.dropdown}">${esc(json.fields?.[m.dropdown] ?? '')}</field>`;
   for (const [oldName, scratchName] of Object.entries(m.numberInputs)) {
     if (json.inputs?.[oldName]?.block) {
       inner += reporterXml(json.inputs[oldName].block, scratchName);
@@ -350,6 +378,8 @@ export function scratchAdapter(ws) {
 }
 
 export function injectScratch(el) {
+  // Inject with a one-category toolbox: custom categories need their callbacks, and scratch-blocks opens
+  // categories while injecting. The real toolbox is loaded once the callbacks exist.
   const ws = ScratchBlocks.inject(el, {
     media: '/sb-media/',
     toolbox: TOOLBOX_XML,
@@ -357,5 +387,14 @@ export function injectScratch(el) {
     theme: ScratchTheme,
   });
   ws.registerToolboxCategoryCallback('VARIABLE', variableFlyout);
+  // Looks and Sensing hold dropdowns (costume and sprite names). Their flyout is built once, so each time
+  // one is opened it is rebuilt from the current names.
+  const freshFlyouts = { Looks: looksBlocks, Sensing: sensingBlocks };
+  ws.addChangeListener((e) => {
+    if (e.type !== 'toolbox_item_select') return;
+    const toolbox = ws.getToolbox();
+    const make = freshFlyouts[toolbox?.getSelectedItem?.()?.getName?.()];
+    if (make) toolbox.getFlyout().show(flyoutFrom(make()));
+  });
   return scratchAdapter(ws);
 }

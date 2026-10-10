@@ -2,6 +2,13 @@
 // The workers only post state; this file draws the stage and relays messages.
 import { backdropColor, costumeColor } from './sprites.js';
 
+// Sets a sprite's costume by index, wrapping like Scratch. Keeps `costume` (the source) in step.
+function atCostume(s, idx) {
+  const n = s.costumes?.length || 0;
+  const i = n ? ((Number(idx) || 0) % n + n) % n : 0;
+  return { ...s, costumeIndex: i, costume: s.costumes?.[i]?.source ?? s.costume };
+}
+
 const W = 480;
 const H = 360;
 
@@ -101,7 +108,7 @@ export function createStage(canvas, logEl) {
       const msg = event.data;
       if (msg.type === 'state') {
         const s = sprites.get(id);
-        if (s) sprites.set(id, { ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size });
+        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size }, msg.state.costume));
         draw();
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask') {
@@ -129,7 +136,7 @@ export function createStage(canvas, logEl) {
     stop();
     for (const [id, start] of starts) {
       const s = sprites.get(id);
-      if (s) sprites.set(id, { ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size });
+      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size }, start.costumeIndex));
     }
     draw();
     log('— green flag');
@@ -138,14 +145,14 @@ export function createStage(canvas, logEl) {
       if (!s) continue;
       const w = spawn(id);
       workers.set(id, w);
-      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size } });
+      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costume: s.costumeIndex, costumes: (s.costumes || []).map((c) => c.name) } });
     }
   }
 
   // list: [{ id, name, x, y, dir, costume }]. Sets where sprites start and draw.
   function setSprites(list) {
-    sprites = new Map(list.map((s) => [s.id, { ...s }]));
-    starts = new Map(list.map((s) => [s.id, { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size }]));
+    sprites = new Map(list.map((s) => [s.id, atCostume({ ...s }, s.costumeIndex)]));
+    starts = new Map(list.map((s) => [s.id, { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costumeIndex: atCostume(s, s.costumeIndex).costumeIndex }]));
     draw();
   }
 

@@ -2,7 +2,7 @@
 // The only way to affect the stage is to post state to the main thread and wait for it to draw.
 // Stop = terminate this worker, so even a runaway loop can be stopped.
 
-let state = { x: 0, y: 0, dir: 90, visible: true, size: 100 };
+let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [] };
 let handlers = [];
 const waiters = []; // FIFO: each posted state waits for one 'continue'
 let askSeq = 0;
@@ -87,6 +87,16 @@ const api = {
   },
   async setSize(size) {
     state.size = clampSize(Number(size));
+    await publish();
+  },
+  // Costumes: switch by name (an unknown name does nothing, as in Scratch) or step to the next one, wrapping.
+  async switchCostume(name) {
+    const i = state.costumes.indexOf(String(name));
+    if (i >= 0) state.costume = i;
+    await publish();
+  },
+  async nextCostume() {
+    if (state.costumes.length) state.costume = (state.costume + 1) % state.costumes.length;
     await publish();
   },
   async point(dir) {

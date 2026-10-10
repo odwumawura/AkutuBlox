@@ -40,7 +40,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A4. Switch Blocks mode to scratch-blocks.** Done: scratch-blocks is the default. The saved `.akutu` format and the runtime are unchanged; `src/editor-scratch.js` converts both ways.  All 9 suites pass on both editors, plus the new `tests/blocks_roundtrip_test.py`.
 - [x] **A5. Remove the old Blockly block code** (done: old editor, `src/blocks.js`, and the scratch-blocks spike page removed; `src/codegen.js` replaces the generator and gives the same code for the same scripts). Blockly stays only for the Web interactions editor.
 - [ ] **A6. Categories** (Phase 1 requires full Scratch 3.0): Motion, Looks, Sound, Events, Control, Sensing, Operators, Variables, My Blocks.
-- [ ] **A7. Sprite features:** visible, size, costume switching, rotation style, drag sprites on the stage.
+- [~] **A7. Sprite features:** visible, size, costume switching (done), rotation style, drag sprites on the stage.
 - [ ] **A8. Backdrops and costumes from files** (uploads to `assets/`). Needs asset handling and a size limit.
 - [?] **A8 decision:** art style for the built-in costumes and backdrops (current ones are simple shapes).
 - [ ] **A9. Blocks-mode tests:** one browser test per category, plus a sprite-and-backdrop round trip.
@@ -99,6 +99,8 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Log
 
 - 2026-10-09: Plan written. A1 started: scratch-blocks renders in a spike page; colours still open.
+- 2026-10-10: Blocks batch 9 (costumes, A7 part): switch costume to [name] (dropdown of the edited sprite's costumes) and next costume (wraps). Green flag restores the starting costume. Limits: costumes are the built-in set only, no rotation style or drag yet (rest of A7). Tests: `tests/costumes_test.py`, fixture `tests/fixtures/costumes.akutu`; round-trip script 10 added.
+- 2026-10-10: Palette fix: the Sensing and Looks flyouts showed "(no sprites)" and "(no costumes)" because their dropdowns were filled once at startup. They are now rebuilt each time the category is opened, so the palette shows the current names. The starter costume is named "Cat" (was "cat-a").
 - 2026-10-10: Blocks batch 8 (touching): touching sprite (named, dropdown of sprites) and touching stage edge. Sprites are circles (radius 18 × size); hidden sprites never touch. Limits: no distance-to-sprite, no touching colour yet. Tests: `tests/touching_test.py`, fixture `tests/fixtures/touching.akutu`; round-trip script 9 added.
 - 2026-10-10: Round-trip test fixed: it checked only the first two scripts, so the rest passed without being compared. It now compares all nine. The saver writes literal numbers as plain fields, so both sides are normalized before comparing; scripts 6, 7 and 9 pass under that rule.
 - 2026-10-09: Blocks batch 7 (sensing): mouse x, mouse y, mouse down. The stage tracks the pointer; sprites ask for it the same way as variables. Limits: no touching/distance/edge checks yet (need sprite positions and bounds). Tests: `tests/sensing_test.py`.

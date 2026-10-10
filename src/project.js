@@ -63,7 +63,7 @@ export function newBlocksProject(name = 'Untitled blocks project') {
           direction: 90,
           size: 100,
           visible: true,
-          costumes: [{ id: 'cat-a', name: 'cat-a', type: 'vector', source: 'builtin:cat', rotationCenterX: 50, rotationCenterY: 50 }],
+          costumes: [{ id: 'cat-a', name: 'Cat', type: 'vector', source: 'builtin:cat', rotationCenterX: 50, rotationCenterY: 50 }],
           currentCostume: 0,
           scripts: [{ id: 's-start', x: 40, y: 40, blocks: [STARTER_SCRIPT] }],
         },
@@ -131,7 +131,12 @@ export function loadSpriteScripts(editor, sprite) {
 
 // Stage list for a project: where each sprite starts and which costume it wears.
 export function stageSpritesFromProject(project) {
-  return project.blocks.sprites.map((s) => ({ id: s.id, name: s.name, x: s.x, y: s.y, dir: s.direction, visible: s.visible !== false, size: s.size || 100, costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star' }));
+  return project.blocks.sprites.map((s) => ({
+    id: s.id, name: s.name, x: s.x, y: s.y, dir: s.direction, visible: s.visible !== false, size: s.size || 100,
+    costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star',
+    costumes: (s.costumes || []).map((c) => ({ name: c.name, source: c.source })),
+    costumeIndex: s.currentCostume || 0,
+  }));
 }
 
 export function loadBlocksProject(project, editor, runtime, selectedId) {

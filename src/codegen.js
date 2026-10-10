@@ -83,6 +83,8 @@ const GEN = {
   looks_hide: () => 'await sprite.hide();\n',
   looks_changesize: (b) => `await sprite.changeSize(${value(b, 'CHANGE')});\n`,
   looks_setsize: (b) => `await sprite.setSize(${value(b, 'SIZE')});\n`,
+  looks_switchcostume: (b) => `await sprite.switchCostume(${JSON.stringify(b.fields?.COSTUME ?? '')});\n`,
+  looks_nextcostume: () => 'await sprite.nextCostume();\n',
   control_repeat: (b) => `{\nconst n = Math.max(0, Math.floor(${value(b, 'TIMES')}));\nfor (let i = 0; i < n; i++) {\n${body(b, 'DO')}}\n}\n`,
   control_forever: (b) => `for (;;) {\nawait sprite.tick();\n${body(b, 'DO')}}\n`,
   control_if: (b) => `if (${condition(b, 'CONDITION')}) {\n${body(b, 'DO')}}\n`,

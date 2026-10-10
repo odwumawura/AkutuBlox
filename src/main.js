@@ -3,7 +3,7 @@ import grapesjs from 'grapesjs';
 import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
-import { injectScratch, setSpriteNames } from './editor-scratch.js';
+import { injectScratch, setSpriteNames, setCostumeNames } from './editor-scratch.js';
 import { codeForScripts } from './codegen.js';
 import { COSTUMES, BACKDROPS, newSprite } from './sprites.js';
 import { createStage } from './runtime.js';
@@ -94,16 +94,24 @@ function codeForSprite(sprite) {
 
 function refreshStage() {
   setSpriteNames(state.project.blocks.sprites.map((s) => s.name));
+  syncCostumeNames();
   stage.setSprites(stageSpritesFromProject(state.project));
   stage.setBackdrop(state.project.blocks.stage.backdrops[0]?.source || 'builtin:meadow');
   renderSpriteList();
   renderBackdropSelect();
 }
 
+// The switch-costume dropdown lists the costumes of the sprite being edited.
+function syncCostumeNames() {
+  const sprite = state.project?.blocks?.sprites?.find((s) => s.id === blocksUi.selectedId);
+  setCostumeNames(sprite ? sprite.costumes.map((c) => c.name) : []);
+}
+
 function selectSprite(id) {
   saveSelectedSprite();
   blocksUi.selectedId = id;
   const sprite = state.project.blocks.sprites.find((s) => s.id === id);
+  syncCostumeNames();
   blocksEditor.quiet(() => loadSpriteScripts(blocksEditor, sprite));
   renderSpriteList();
 }
@@ -382,6 +390,9 @@ function loadIntoEditors(project) {
   try {
     if (project.mode === 'blocks') {
       state.project = project;
+      // Costume names must be known before the blocks are created, or a saved costume choice would be lost.
+      blocksUi.selectedId = project.blocks.sprites[0].id;
+      syncCostumeNames();
       blocksUi.selectedId = blocksEditor.quiet(() => loadBlocksProject(project, blocksEditor, stage, project.blocks.sprites[0].id));
       refreshStage();
     } else {
