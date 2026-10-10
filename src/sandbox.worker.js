@@ -5,7 +5,8 @@
 const ROTATION_STYLES = ['all around', 'left-right', "don't rotate"];
 
 let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false };
-let handlers = [];
+let handlers = []; // green-flag scripts
+let eventHandlers = []; // key, click and message scripts: { kind, key | name, fn }
 const waiters = []; // FIFO: each posted state waits for one 'continue'
 let askSeq = 0;
 const answers = new Map(); // requests waiting for the main thread's answer
@@ -41,6 +42,21 @@ function publish() {
 const api = {
   onFlag(fn) {
     handlers.push(fn);
+  },
+  // Event hats. The main thread sends each event to the sprites; a matching script runs.
+  onKey(key, fn) {
+    eventHandlers.push({ kind: 'key', key: String(key), fn });
+  },
+  onClick(fn) {
+    eventHandlers.push({ kind: 'click', fn });
+  },
+  onMessage(name, fn) {
+    eventHandlers.push({ kind: 'message', name: String(name), fn });
+  },
+  // Broadcast goes to the main thread, which delivers it to every sprite (including this one).
+  async broadcast(name) {
+    post({ type: 'broadcast', name: String(name) });
+    await api.tick();
   },
   async move(steps) {
     const rad = (state.dir * Math.PI) / 180;
@@ -182,6 +198,18 @@ self.onmessage = (event) => {
     }
     return;
   }
+  if (msg.type === 'go') {
+    // Sent once every sprite has registered its scripts, so no broadcast is missed at the start.
+    runHandlers();
+    return;
+  }
+  if (msg.type === 'event') {
+    for (const h of eventHandlers) {
+      const hit = h.kind === msg.kind && (h.kind === 'click' || (h.kind === 'key' ? h.key === 'any' || h.key === msg.key : h.name === msg.name));
+      if (hit) h.fn().catch((err) => post({ type: 'error', message: err.message }));
+    }
+    return;
+  }
   if (msg.type === 'moved') {
     // The stage moved this sprite by dragging it; keep the sprite's own state in step.
     state.x = msg.x;
@@ -191,14 +219,16 @@ self.onmessage = (event) => {
   if (msg.type === 'run') {
     state = { ...msg.state };
     handlers = [];
+    eventHandlers = [];
     try {
       // Shadow network globals so generated code can't use them, even though our generators never emit them.
       const program = new Function('sprite', 'fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', msg.code);
       program(api, undefined, undefined, undefined, undefined);
     } catch (err) {
       post({ type: 'error', message: err.message });
+      post({ type: 'ready' });
       return;
     }
-    publish().then(() => runHandlers());
+    publish().then(() => post({ type: 'ready' }));
   }
 };

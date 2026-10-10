@@ -29,6 +29,8 @@ export function createStage(canvas, logEl) {
   const RADIUS = 18;
   const reach = (s) => (RADIUS * s.size) / 100;
   let drag = null; // { id, dx, dy } while a draggable sprite is held
+  let press = null; // { id, x, y, moved }: a pointer down on a sprite, for click detection
+  let pendingReady = null; // ids still registering their scripts in this green-flag run
   function touchingEdge(s) {
     const r = reach(s);
     return s.x + r > W / 2 || s.x - r < -W / 2 || s.y + r > H / 2 || s.y - r < -H / 2;
@@ -64,9 +66,9 @@ export function createStage(canvas, logEl) {
     const y = H / 2 - ((e.clientY - r.top) * H) / r.height;
     return { x: Math.max(-W / 2, Math.min(W / 2, x)), y: Math.max(-H / 2, Math.min(H / 2, y)) };
   }
-  // The top-most visible sprite that is draggable and under the pointer.
-  function spriteAt(p) {
-    return [...sprites.values()].reverse().find((s) => s.visible && s.draggable && Math.hypot(p.x - s.x, p.y - s.y) <= reach(s));
+  // The top-most visible sprite under the pointer.
+  function spriteUnder(p) {
+    return [...sprites.values()].reverse().find((s) => s.visible && Math.hypot(p.x - s.x, p.y - s.y) <= reach(s));
   }
   function moveDragged(p) {
     const s = sprites.get(drag.id);
@@ -87,20 +89,36 @@ export function createStage(canvas, logEl) {
   canvas.addEventListener('pointermove', (e) => {
     const p = stagePoint(e);
     Object.assign(mouse, p);
+    if (press && Math.hypot(p.x - press.x, p.y - press.y) > 3) press.moved = true;
     if (drag) moveDragged(p);
   });
   canvas.addEventListener('pointerdown', (e) => {
     const p = stagePoint(e);
     Object.assign(mouse, p, { down: true });
-    const s = spriteAt(p);
-    if (s) {
+    const s = spriteUnder(p);
+    press = s ? { id: s.id, x: p.x, y: p.y, moved: false } : null;
+    if (s && s.draggable) {
       drag = { id: s.id, dx: s.x - p.x, dy: s.y - p.y };
       canvas.setPointerCapture(e.pointerId);
     }
   });
   window.addEventListener('pointerup', () => {
     mouse.down = false;
+    // "When this sprite clicked": a press and release on the sprite without dragging it.
+    if (press && !press.moved) workers.get(press.id)?.postMessage({ type: 'event', kind: 'click' });
+    press = null;
     endDrag();
+  });
+
+  // Key events go to every running sprite, except while someone is typing in a field.
+  const KEY_NAMES = { ' ': 'space', ArrowUp: 'up arrow', ArrowDown: 'down arrow', ArrowLeft: 'left arrow', ArrowRight: 'right arrow' };
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat || e.isComposing) return;
+    const t = e.target;
+    if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    const key = KEY_NAMES[e.key] || (e.key.length === 1 ? e.key.toLowerCase() : null);
+    if (!key) return;
+    for (const w of workers.values()) w.postMessage({ type: 'event', kind: 'key', key });
   });
 
   const log = (msg) => {
@@ -151,6 +169,16 @@ export function createStage(canvas, logEl) {
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask') {
         w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg, id) });
+      } else if (msg.type === 'ready') {
+        if (pendingReady) {
+          pendingReady.delete(id);
+          if (pendingReady.size === 0) {
+            pendingReady = null;
+            for (const w of workers.values()) w.postMessage({ type: 'go' });
+          }
+        }
+      } else if (msg.type === 'broadcast') {
+        for (const w of workers.values()) w.postMessage({ type: 'event', kind: 'message', name: msg.name });
       } else if (msg.type === 'backdrop') {
         if (msg.op === 'switch') switchBackdrop(msg.name);
         else nextBackdrop();
@@ -165,6 +193,7 @@ export function createStage(canvas, logEl) {
   }
 
   function stop() {
+    pendingReady = null;
     if (workers.size) {
       for (const w of workers.values()) w.terminate();
       workers = new Map();
@@ -181,6 +210,7 @@ export function createStage(canvas, logEl) {
     }
     showBackdrop(0);
     log('— green flag');
+    pendingReady = new Set(runs.filter(({ id }) => sprites.has(id)).map(({ id }) => id));
     for (const { id, code } of runs) {
       const s = sprites.get(id);
       if (!s) continue;

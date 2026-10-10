@@ -71,6 +71,10 @@ const EXPR = {
 // Blocks that do things. Each returns JS statements.
 const GEN = {
   event_flag: (b) => `sprite.onFlag(async () => {\n${body(b, 'DO')}});\n`,
+  event_key: (b) => `sprite.onKey(${JSON.stringify(b.fields?.KEY ?? 'space')}, async () => {\n${body(b, 'DO')}});\n`,
+  event_click: (b) => `sprite.onClick(async () => {\n${body(b, 'DO')}});\n`,
+  event_message: (b) => `sprite.onMessage(${JSON.stringify(b.fields?.MSG ?? '')}, async () => {\n${body(b, 'DO')}});\n`,
+  event_broadcast: (b) => `await sprite.broadcast(${JSON.stringify(b.fields?.MSG ?? '')});\n`,
   motion_move: (b) => `await sprite.move(${value(b, 'STEPS')});\n`,
   motion_turn: (b) => `await sprite.turn(${value(b, 'DEGREES')});\n`,
   motion_goto: (b) => `await sprite.goTo(${value(b, 'X')}, ${value(b, 'Y')});\n`,

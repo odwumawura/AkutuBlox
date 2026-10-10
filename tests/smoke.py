@@ -82,7 +82,7 @@ with sync_playwright() as p:
     # Sandbox check: code run in the worker cannot see the page.
     sandbox = page.evaluate("""() => new Promise((resolve) => {
         const w = new Worker('/src/sandbox.worker.js', { type: 'module' });
-        w.onmessage = (e) => { if (e.data.type === 'state') { w.postMessage({ type: 'continue' }); return; } resolve(e.data.message); w.terminate(); };
+        w.onmessage = (e) => { if (e.data.type === 'ready') { w.postMessage({ type: 'go' }); return; } if (e.data.type === 'state') { w.postMessage({ type: 'continue' }); return; } if (e.data.type !== 'error') return; resolve(e.data.message); w.terminate(); };
         w.postMessage({ type: 'run', state: { x: 0, y: 0, dir: 90 },
           code: "sprite.onFlag(async () => { self.postMessage({type:'error', message: [typeof document, typeof localStorage, typeof window, typeof fetch].join(',')}); });" });
       })""")

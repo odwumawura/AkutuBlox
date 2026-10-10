@@ -46,6 +46,12 @@ export function setBackdropNames(names) {
 const backdropOptions = () => (backdropNames.length ? backdropNames.map((n) => [n, n]) : [['(no backdrops)', '']]);
 const spriteOptions = () => (spriteNames.length ? spriteNames.map((n) => [n, n]) : [['(no sprites)', '']]);
 
+// Keys a script can wait for: the arrows, space, any key, letters and digits (same names as Scratch).
+const KEY_OPTIONS = [
+  ...['space', 'up arrow', 'down arrow', 'right arrow', 'left arrow', 'any'].map((k) => [k, k]),
+  ...'abcdefghijklmnopqrstuvwxyz0123456789'.split('').map((k) => [k, k]),
+];
+
 ScratchBlocks.defineBlocksWithJsonArray([
   { type: 'sensing_touchingedge', message0: 'touching edge?', extensions: ['colours_sensing', 'output_boolean'] },
   {
@@ -78,6 +84,25 @@ ScratchBlocks.defineBlocksWithJsonArray([
     message0: 'set drag mode %1',
     args0: [{ type: 'field_dropdown', name: 'MODE', options: [['draggable', 'draggable'], ['not draggable', 'not draggable']] }],
     extensions: ['colours_sensing', 'shape_statement'],
+  },
+  {
+    type: 'event_key',
+    message0: 'when %1 key pressed',
+    args0: [{ type: 'field_dropdown', name: 'KEY', options: KEY_OPTIONS }],
+    extensions: ['colours_event', 'shape_hat'],
+  },
+  { type: 'event_click', message0: 'when this sprite clicked', extensions: ['colours_event', 'shape_hat'] },
+  {
+    type: 'event_message',
+    message0: 'when I receive %1',
+    args0: [{ type: 'field_input', name: 'MSG', text: 'message1' }],
+    extensions: ['colours_event', 'shape_hat'],
+  },
+  {
+    type: 'event_broadcast',
+    message0: 'broadcast %1',
+    args0: [{ type: 'field_input', name: 'MSG', text: 'message1' }],
+    extensions: ['colours_event', 'shape_statement'],
   },
 ]);
 
@@ -112,6 +137,10 @@ export const TOOLBOX_XML = `
 <xml>
   <category name="Events" id="events" colour="#FFBF00">
     <block type="event_whenflagclicked"/>
+    <block type="event_key"/>
+    <block type="event_click"/>
+    <block type="event_message"/>
+    <block type="event_broadcast"/>
   </category>
   <category name="Motion" id="motion" colour="#4C97FF">
     <block type="motion_movesteps">${num('STEPS', 10)}</block>
@@ -158,6 +187,10 @@ export const TOOLBOX_XML = `
 // hat: the event block's body lives in `next` on the Scratch side and in DO in our format.
 const MAP = [
   { old: 'event_flag', scratch: 'event_whenflagclicked', hat: true, numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'event_key', scratch: 'event_key', hat: true, numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'KEY' },
+  { old: 'event_click', scratch: 'event_click', hat: true, numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'event_message', scratch: 'event_message', hat: true, numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'MSG' },
+  { old: 'event_broadcast', scratch: 'event_broadcast', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'MSG' },
   { old: 'motion_move', scratch: 'motion_movesteps', numberInputs: { STEPS: 'STEPS' }, statements: {}, boolInputs: {} },
   { old: 'motion_turn', scratch: 'motion_turnright', numberInputs: { DEGREES: 'DEGREES' }, statements: {}, boolInputs: {} },
   { old: 'motion_goto', scratch: 'motion_gotoxy', numberInputs: { X: 'X', Y: 'Y' }, statements: {}, boolInputs: {} },
@@ -324,12 +357,12 @@ function chainToXml(json) {
   const m = byOld[json.type];
   if (!m) return '';
   let inner = '';
+  if (m.dropdown) inner += `<field name="${m.dropdown}">${esc(json.fields?.[m.dropdown] ?? '')}</field>`;
   if (m.hat) {
     inner += `<next>${chainToXml(json.inputs?.DO?.block)}</next>`;
     return `<block type="${m.scratch}">${inner}</block>`;
   }
   if (m.varField) inner += variableField(json.fields?.VARIABLE);
-  if (m.dropdown) inner += `<field name="${m.dropdown}">${esc(json.fields?.[m.dropdown] ?? '')}</field>`;
   for (const [oldName, scratchName] of Object.entries(m.numberInputs)) {
     if (json.inputs?.[oldName]?.block) {
       inner += reporterXml(json.inputs[oldName].block, scratchName);
