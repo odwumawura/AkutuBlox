@@ -111,6 +111,13 @@ const api = {
   mouseDown() {
     return ask({ what: 'mouseDown' });
   },
+  // Touching: another sprite (by name), or the stage edge.
+  touching(name) {
+    return ask({ what: 'touching', name: String(name) });
+  },
+  touchingEdge() {
+    return ask({ what: 'touchingEdge' });
+  },
   setVar(name, value) {
     post({ type: 'setVar', name: String(name), value });
   },

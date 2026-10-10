@@ -25,6 +25,16 @@ R6 = {"type": "event_flag", "inputs": {"DO": {"block": {
     }},
 }}}}
 
+R9 = {"type": "event_flag", "inputs": {"DO": {"block": {
+    "type": "control_if",
+    "inputs": {
+        "CONDITION": rep("operator_or",
+                         OPERAND1=rep("sensing_touchingedge"),
+                         OPERAND2={"block": {"type": "sensing_touchingsprite", "fields": {"SPRITE": "Cat"}}}),
+        "DO": {"block": {"type": "motion_changey", "inputs": {"DY": lit(1)}}},
+    },
+}}}}
+
 SCRIPTS = [
     {"id": "s-1", "x": 40, "y": 40, "blocks": [{
         "type": "event_flag",
@@ -60,6 +70,7 @@ SCRIPTS = [
     {"id": "s-8", "x": 600, "y": 700, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {
         "type": "control_wait_until", "inputs": {"CONDITION": {"block": {"type": "sensing_mousedown"}}},
         "next": {"block": {"type": "motion_goto", "inputs": {"X": {"block": {"type": "sensing_mousex"}}, "Y": {"block": {"type": "sensing_mousey"}}}}}}}}}]},
+    {"id": "s-9", "x": 600, "y": 800, "blocks": [R9]},
 ]
 
 failures = []
@@ -71,6 +82,41 @@ def strip_ids(x):
     if isinstance(x, list):
         return [strip_ids(v) for v in x]
     return x
+LITERALS = {"math_number": "NUM", "text": "TEXT"}
+
+def canon(x):
+    """Put a saved block tree into one shared form before comparing.
+
+    The saver writes a literal number or text as a plain field on its parent
+    (fields: {"Y": 3}) instead of a nested literal block, and omits empty
+    inputs. Both spellings mean the same script, so both sides are reduced to
+    the plain-field form. Anything else must match exactly.
+    """
+    if isinstance(x, list):
+        return [canon(v) for v in x]
+    if not isinstance(x, dict):
+        return x
+    out = {}
+    for k, v in x.items():
+        if k == "id":
+            continue
+        if k == "inputs" and isinstance(v, dict):
+            if not v:
+                continue
+            kept = {}
+            for name, slot in v.items():
+                blk = slot.get("block") if isinstance(slot, dict) else None
+                if blk and blk.get("type") in LITERALS and not blk.get("inputs") \
+                        and LITERALS[blk["type"]] in (blk.get("fields") or {}):
+                    out.setdefault("fields", {})[name] = blk["fields"][LITERALS[blk["type"]]]
+                else:
+                    kept[name] = canon(slot)
+            if kept:
+                out["inputs"] = kept
+        else:
+            out[k] = canon(v)
+    return out
+
 def check(cond, msg):
     print(("PASS " if cond else "FAIL ") + msg)
     if not cond:
@@ -84,10 +130,12 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 8, f"eight top-level scripts after load (got {len(saved)})")
-    check(saved and strip_ids(saved[0]["blocks"]) == SCRIPTS[0]["blocks"], "nested script 1 round-trips unchanged")
-    check(len(saved) > 1 and strip_ids(saved[1]["blocks"]) == SCRIPTS[1]["blocks"], "script 2 round-trips unchanged")
-    check(all(s["x"] == o["x"] and s["y"] == o["y"] for s, o in zip(saved, SCRIPTS)), "script positions round-trip")
+    check(len(saved) == 9, f"nine top-level scripts after load (got {len(saved)})")
+    # Every script comes back with the same blocks (ids ignored) and the same position.
+    for i, want in enumerate(SCRIPTS):
+        got = saved[i] if i < len(saved) else {}
+        check(canon(got.get("blocks")) == canon(want["blocks"]), f"script {i + 1} round-trips unchanged")
+        check(got.get("x") == want["x"] and got.get("y") == want["y"], f"script {i + 1} keeps its position")
     b.close()
 
 print("ALL PASSED" if not failures else f"FAILURES: {failures}")

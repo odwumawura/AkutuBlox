@@ -99,6 +99,8 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Log
 
 - 2026-10-09: Plan written. A1 started: scratch-blocks renders in a spike page; colours still open.
+- 2026-10-10: Blocks batch 8 (touching): touching sprite (named, dropdown of sprites) and touching stage edge. Sprites are circles (radius 18 × size); hidden sprites never touch. Limits: no distance-to-sprite, no touching colour yet. Tests: `tests/touching_test.py`, fixture `tests/fixtures/touching.akutu`; round-trip script 9 added.
+- 2026-10-10: Round-trip test fixed: it checked only the first two scripts, so the rest passed without being compared. It now compares all nine. The saver writes literal numbers as plain fields, so both sides are normalized before comparing; scripts 6, 7 and 9 pass under that rule.
 - 2026-10-09: Blocks batch 7 (sensing): mouse x, mouse y, mouse down. The stage tracks the pointer; sprites ask for it the same way as variables. Limits: no touching/distance/edge checks yet (need sprite positions and bounds). Tests: `tests/sensing_test.py`.
 - 2026-10-09: Blocks batch 6 (variables): make a variable (palette), set to, change by, variable reporter. Global to the stage, saved with the project, kept across runs. Limits: no sprite-only variables, rename or delete yet, no monitors, no lists. The make-variable prompt is the browser's prompt for now. Tests: `tests/variables_test.py`, fixture `tests/fixtures/variables.akutu`.
 - 2026-10-09: Blocks batch 5 (operators): + - × ÷, < > =, and/or/not as reporters inside any number or boolean input (nested). If-then and wait until. Comparisons are numeric for now; text comparison comes later. Tests: `tests/operators_test.py`, round trip extended.

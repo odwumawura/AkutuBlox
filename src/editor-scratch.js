@@ -25,6 +25,23 @@ const ScratchTheme = new ScratchBlocks.Theme('scratch-akutu', blockStyles, {}, {
   scrollbarColour: '#CECDCE',
 });
 
+// Sprite names for the "touching" dropdown. main.js keeps this up to date.
+let spriteNames = [];
+export function setSpriteNames(names) {
+  spriteNames = names;
+}
+const spriteOptions = () => (spriteNames.length ? spriteNames.map((n) => [n, n]) : [['(no sprites)', '']]);
+
+ScratchBlocks.defineBlocksWithJsonArray([
+  { type: 'sensing_touchingedge', message0: 'touching edge?', extensions: ['colours_sensing', 'output_boolean'] },
+  {
+    type: 'sensing_touchingsprite',
+    message0: 'touching %1 ?',
+    args0: [{ type: 'field_dropdown', name: 'SPRITE', options: spriteOptions }],
+    extensions: ['colours_sensing', 'output_boolean'],
+  },
+]);
+
 ScratchBlocks.ScratchMsgs.setLocale('en');
 ScratchBlocks.setLocale('en');
 
@@ -63,6 +80,8 @@ export const TOOLBOX_XML = `
     <block type="sensing_mousex"/>
     <block type="sensing_mousey"/>
     <block type="sensing_mousedown"/>
+    <block type="sensing_touchingedge"/>
+    <block type="sensing_touchingsprite"/>
   </category>
   <category name="Variables" id="variables" colour="#FF8C1A" custom="VARIABLE"/>
   <category name="Operators" id="operators" colour="#59C059">
@@ -111,6 +130,7 @@ const byScratch = Object.fromEntries(MAP.map((m) => [m.scratch, m]));
 
 // Reporters: same name on both sides. Operands are numbers, or booleans for and/or/not.
 const REPORTERS = {
+  sensing_touchingedge: [],
   sensing_mousex: [],
   sensing_mousey: [],
   sensing_mousedown: [],
@@ -164,6 +184,7 @@ function inputToOld(block, scratchName) {
 
 function reporterToOld(block) {
   if (block.type === 'data_variable') return { type: 'data_variable', fields: { VARIABLE: variableName(block) } };
+  if (block.type === 'sensing_touchingsprite') return { type: 'sensing_touchingsprite', fields: { SPRITE: block.getFieldValue('SPRITE') ?? '' } };
   const names = REPORTERS[block.type];
   if (!names) return undefined; // unknown reporters are not saved
   const out = { type: block.type };
@@ -232,6 +253,7 @@ function operandsXml(e, names) {
 
 // Any block (statement or reporter), without its `next` chain.
 function blockXml(e) {
+  if (e.type === 'sensing_touchingsprite') return `<block type="sensing_touchingsprite"><field name="SPRITE">${esc(e.fields?.SPRITE ?? '')}</field></block>`;
   if (e.type === 'data_variable') return `<block type="data_variable">${variableField(e.fields?.VARIABLE)}</block>`;
   if (REPORTERS[e.type]) return `<block type="${e.type}">${operandsXml(e, REPORTERS[e.type])}</block>`;
   return '';

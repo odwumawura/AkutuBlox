@@ -15,12 +15,33 @@ export function createStage(canvas, logEl) {
   let variables = new Map(); // name -> value, shared by all sprites
   const mouse = { x: 0, y: 0, down: false }; // stage coordinates, origin at centre, y up
 
-  function answerFor(msg) {
+  // A sprite is drawn as a circle of this radius at size 100 (see draw()); touching uses the same circle.
+  const RADIUS = 18;
+  const reach = (s) => (RADIUS * s.size) / 100;
+  function touchingEdge(s) {
+    const r = reach(s);
+    return s.x + r > W / 2 || s.x - r < -W / 2 || s.y + r > H / 2 || s.y - r < -H / 2;
+  }
+  function touchingSprite(a, b) {
+    if (!a.visible || !b.visible) return false;
+    return Math.hypot(a.x - b.x, a.y - b.y) < reach(a) + reach(b);
+  }
+
+  function answerFor(msg, id) {
     switch (msg.what) {
       case 'var': return variables.get(msg.name) ?? 0;
       case 'mouseX': return mouse.x;
       case 'mouseY': return mouse.y;
       case 'mouseDown': return mouse.down;
+      case 'touchingEdge': {
+        const me = sprites.get(id);
+        return !!me && me.visible && touchingEdge(me);
+      }
+      case 'touching': {
+        const me = sprites.get(id);
+        const other = [...sprites.values()].find((o) => o.name === msg.name && o.id !== id);
+        return !!me && !!other && touchingSprite(me, other);
+      }
       default: return undefined;
     }
   }
@@ -84,7 +105,7 @@ export function createStage(canvas, logEl) {
         draw();
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask') {
-        w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg) });
+        w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg, id) });
       } else if (msg.type === 'setVar') {
         variables.set(msg.name, msg.value);
       } else if (msg.type === 'error') {

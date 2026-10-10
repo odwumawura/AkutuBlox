@@ -50,6 +50,8 @@ const bool = (e, name) => {
 
 // Reporters (expressions). Each returns a JS expression.
 const EXPR = {
+  sensing_touchingedge: () => '(await sprite.touchingEdge())',
+  sensing_touchingsprite: (e) => `(await sprite.touching(${JSON.stringify(e.fields?.SPRITE ?? '')}))`,
   sensing_mousex: () => '(await sprite.mouseX())',
   sensing_mousey: () => '(await sprite.mouseY())',
   sensing_mousedown: () => '(await sprite.mouseDown())',

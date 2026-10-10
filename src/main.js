@@ -3,7 +3,7 @@ import grapesjs from 'grapesjs';
 import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
-import { injectScratch } from './editor-scratch.js';
+import { injectScratch, setSpriteNames } from './editor-scratch.js';
 import { codeForScripts } from './codegen.js';
 import { COSTUMES, BACKDROPS, newSprite } from './sprites.js';
 import { createStage } from './runtime.js';
@@ -93,6 +93,7 @@ function codeForSprite(sprite) {
 }
 
 function refreshStage() {
+  setSpriteNames(state.project.blocks.sprites.map((s) => s.name));
   stage.setSprites(stageSpritesFromProject(state.project));
   stage.setBackdrop(state.project.blocks.stage.backdrops[0]?.source || 'builtin:meadow');
   renderSpriteList();
