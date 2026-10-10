@@ -37,6 +37,13 @@ export function setCostumeNames(names) {
   costumeNames = names;
 }
 const costumeOptions = () => (costumeNames.length ? costumeNames.map((n) => [n, n]) : [['(no costumes)', '']]);
+
+// Backdrop names of the stage (the switch-backdrop dropdown lists them).
+let backdropNames = [];
+export function setBackdropNames(names) {
+  backdropNames = names;
+}
+const backdropOptions = () => (backdropNames.length ? backdropNames.map((n) => [n, n]) : [['(no backdrops)', '']]);
 const spriteOptions = () => (spriteNames.length ? spriteNames.map((n) => [n, n]) : [['(no sprites)', '']]);
 
 ScratchBlocks.defineBlocksWithJsonArray([
@@ -48,6 +55,12 @@ ScratchBlocks.defineBlocksWithJsonArray([
     extensions: ['colours_sensing', 'output_boolean'],
   },
   // Our own type name: scratch-blocks already has looks_switchcostumeto with its own menu.
+  {
+    type: 'looks_switchbackdrop',
+    message0: 'switch backdrop to %1',
+    args0: [{ type: 'field_dropdown', name: 'BACKDROP', options: backdropOptions }],
+    extensions: ['colours_looks', 'shape_statement'],
+  },
   {
     type: 'looks_switchcostume',
     message0: 'switch costume to %1',
@@ -69,6 +82,8 @@ const looksBlocks = () => `
     <block type="looks_setsizeto">${num('SIZE', 100)}</block>
     <block type="looks_switchcostume"/>
     <block type="looks_nextcostume"/>
+    <block type="looks_switchbackdrop"/>
+    <block type="looks_nextbackdrop"/>
 `;
 const sensingBlocks = () => `
     <block type="sensing_mousex"/>
@@ -149,6 +164,8 @@ const MAP = [
   { old: 'data_setvariableto', scratch: 'data_setvariableto', numberInputs: { VALUE: 'VALUE' }, textInputs: ['VALUE'], varField: 'VARIABLE', statements: {}, boolInputs: {} },
   { old: 'looks_switchcostume', scratch: 'looks_switchcostume', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'COSTUME' },
   { old: 'looks_nextcostume', scratch: 'looks_nextcostume', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'looks_switchbackdrop', scratch: 'looks_switchbackdrop', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'BACKDROP' },
+  { old: 'looks_nextbackdrop', scratch: 'looks_nextbackdrop', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));

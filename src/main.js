@@ -3,7 +3,7 @@ import grapesjs from 'grapesjs';
 import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import '../style.css';
-import { injectScratch, setSpriteNames, setCostumeNames } from './editor-scratch.js';
+import { injectScratch, setSpriteNames, setCostumeNames, setBackdropNames } from './editor-scratch.js';
 import { codeForScripts } from './codegen.js';
 import { COSTUMES, BACKDROPS, newSprite } from './sprites.js';
 import { createStage } from './runtime.js';
@@ -96,15 +96,17 @@ function refreshStage() {
   setSpriteNames(state.project.blocks.sprites.map((s) => s.name));
   syncCostumeNames();
   stage.setSprites(stageSpritesFromProject(state.project));
-  stage.setBackdrop(state.project.blocks.stage.backdrops[0]?.source || 'builtin:meadow');
+  stage.setBackdrops(state.project.blocks.stage.backdrops);
   renderSpriteList();
   renderBackdropSelect();
 }
 
-// The switch-costume dropdown lists the costumes of the sprite being edited.
+// The switch-costume dropdown lists the costumes of the sprite being edited;
+// the switch-backdrop dropdown lists the stage's backdrops.
 function syncCostumeNames() {
   const sprite = state.project?.blocks?.sprites?.find((s) => s.id === blocksUi.selectedId);
   setCostumeNames(sprite ? sprite.costumes.map((c) => c.name) : []);
+  setBackdropNames((state.project?.blocks?.stage?.backdrops || []).map((b) => b.name));
 }
 
 function selectSprite(id) {
@@ -491,4 +493,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };
+window.__akutu = { sprites: () => stage.getSprites(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };

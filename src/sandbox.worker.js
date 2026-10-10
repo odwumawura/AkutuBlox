@@ -99,6 +99,15 @@ const api = {
     if (state.costumes.length) state.costume = (state.costume + 1) % state.costumes.length;
     await publish();
   },
+  // Backdrops belong to the stage, so the change is posted to the main thread (no reply needed).
+  async switchBackdrop(name) {
+    post({ type: 'backdrop', op: 'switch', name: String(name) });
+    await api.tick();
+  },
+  async nextBackdrop() {
+    post({ type: 'backdrop', op: 'next' });
+    await api.tick();
+  },
   async point(dir) {
     state.dir = ((Number(dir) % 360) + 360) % 360;
     await publish();

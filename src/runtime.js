@@ -16,6 +16,9 @@ export function createStage(canvas, logEl) {
   const ctx = canvas.getContext('2d');
   // id -> { id, name, x, y, dir, costume }
   let sprites = new Map();
+  // Backdrops are stage-wide. The first in the list is the starting one; green flag goes back to it.
+  let backdrops = [{ name: 'Meadow', source: 'builtin:meadow' }];
+  let backdropIndex = 0;
   let backdrop = 'builtin:meadow';
   let workers = new Map();
   let starts = new Map();
@@ -113,6 +116,9 @@ export function createStage(canvas, logEl) {
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask') {
         w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg, id) });
+      } else if (msg.type === 'backdrop') {
+        if (msg.op === 'switch') switchBackdrop(msg.name);
+        else nextBackdrop();
       } else if (msg.type === 'setVar') {
         variables.set(msg.name, msg.value);
       } else if (msg.type === 'error') {
@@ -138,7 +144,7 @@ export function createStage(canvas, logEl) {
       const s = sprites.get(id);
       if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size }, start.costumeIndex));
     }
-    draw();
+    showBackdrop(0);
     log('— green flag');
     for (const { id, code } of runs) {
       const s = sprites.get(id);
@@ -169,9 +175,30 @@ export function createStage(canvas, logEl) {
     return [...variables].map(([name, value]) => ({ name, value }));
   }
 
-  function setBackdrop(source) {
-    backdrop = source;
+  function showBackdrop(i) {
+    backdropIndex = i;
+    backdrop = backdrops[i].source;
     draw();
+  }
+
+  // list: [{ name, source }]. Replaces the backdrops and goes back to the first one.
+  function setBackdrops(list) {
+    backdrops = list && list.length ? list.map((b) => ({ name: b.name, source: b.source })) : [{ name: 'Meadow', source: 'builtin:meadow' }];
+    showBackdrop(0);
+  }
+
+  // Scratch-style: an unknown name does nothing.
+  function switchBackdrop(name) {
+    const i = backdrops.findIndex((b) => b.name === String(name));
+    if (i >= 0) showBackdrop(i);
+  }
+
+  function nextBackdrop() {
+    showBackdrop((backdropIndex + 1) % backdrops.length);
+  }
+
+  function getBackdrop() {
+    return { index: backdropIndex, name: backdrops[backdropIndex].name, source: backdrop };
   }
 
   function getSprites() {
@@ -183,5 +210,5 @@ export function createStage(canvas, logEl) {
     return [...starts].map(([id, p]) => ({ id, ...p }));
   }
 
-  return { greenFlag, stop, setSprites, setBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
+  return { greenFlag, stop, setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
 }
