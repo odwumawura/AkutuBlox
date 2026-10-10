@@ -14,7 +14,7 @@ Phase 1 is partly done. Web mode is well along. Blocks mode is still a spike and
 |---|---|
 | Web builder: pages, components, palette, preview, zip export | Working, 7 browser suites pass |
 | Web interactions: 10 triggers, 22 actions, if/else, timers, variables | Working |
-| Blocks mode: 16 blocks (Events, Motion, Control), sprites, backdrops, green flag | Spike (not Scratch 3.0 yet) |
+| Blocks mode: all nine Scratch categories, sprites, backdrops, costume and backdrop uploads, sounds, events, My Blocks | Working, with the limits noted in the batch log (not full Scratch 3.0 yet) |
 | Save/open, unsaved-changes prompt, .akutu file format (schema v0.1) | Working |
 
 ---
@@ -35,7 +35,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
   - `control_repeat` (field TIMES) → `control_repeat` (input TIMES, shadow `math_number` NUM=10; statement SUBSTACK)
   - `control_wait` (field SECONDS) → `control_wait` (input DURATION, shadow `math_number` NUM=1)
   - Note: our fields become Scratch shadow-number inputs, so the file format needs a converter (part of A4).
-- [ ] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Done for the current 5 blocks (`src/codegen.js`, which replaces the Blockly generator). Runtime: our own, per the decision below.
+- [x] **A3. Code generation.** Turn scratch-blocks workspaces into code our sandbox runs. Done for every block in the palette (`src/codegen.js`, which replaces the Blockly generator). Runtime: our own, per the decision below.
 - [x] **A3 decision (corrected): our own runtime, not scratch-vm.** scratch-vm and scratch-storage are AGPL-3.0 (my earlier "BSD-3" was wrong; checked from the installed LICENSE files). Hosting them would require publishing the whole app under AGPL, so they were removed. We keep our own runtime (stage plus sandbox worker, code from `src/codegen.js`) and grow its block set ourselves under our own licence. User approved this path.
 - [x] **A4. Switch Blocks mode to scratch-blocks.** Done: scratch-blocks is the default. The saved `.akutu` format and the runtime are unchanged; `src/editor-scratch.js` converts both ways.  All 9 suites pass on both editors, plus the new `tests/blocks_roundtrip_test.py`.
 - [x] **A5. Remove the old Blockly block code** (done: old editor, `src/blocks.js`, and the scratch-blocks spike page removed; `src/codegen.js` replaces the generator and gives the same code for the same scripts). Blockly stays only for the Web interactions editor.
@@ -43,11 +43,11 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A7. Sprite features:** visible, size, costume switching, rotation style, drag sprites on the stage (done in batches 9 and 11).
 - [x] **A8. Backdrops and costumes from files** (uploads to `assets/`, 512 KB per image). Done in batch 15. Limits: costume and backdrop images only (PNG, JPEG, GIF); the touching check still uses the circle, not the image shape; rotation centre is the image centre.
 - [x] **A8 decision:** flat vector art for the built-in costumes and backdrops (the current simple shapes). Decided by you.
-- [ ] **A9. Blocks-mode tests:** one browser test per category, plus a sprite-and-backdrop round trip.
+- [x] **A9. Blocks-mode tests:** one browser test per category (motion, looks, sound, events, control, sensing, operators, variables, my blocks), plus sprite, backdrop and round-trip tests.
 
 ## Track B: Web builder (Phase 1, mostly done)
 
-- [ ] **B1.** Remove the dark strip at the right edge of the component palette.
+- [x] **B1.** Remove the dark strip at the right edge of the component palette. (Confirmed by you.)
 - [ ] **B2.** Page rename and delete (the schema already allows both).
 - [ ] **B3.** Hidden elements can be selected on the canvas (show-hidden toggle).
 - [ ] **B4.** Style editing: a replacement for GrapesJS's Style Manager, limited to the schema's fixed style set (colors, spacing, fonts, sizes, borders). No free-form CSS.
