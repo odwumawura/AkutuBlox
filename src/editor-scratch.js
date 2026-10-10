@@ -59,6 +59,7 @@ export const TOOLBOX_XML = `
     <block type="control_repeat">${num('TIMES', 10)}</block>
     <block type="control_wait">${num('DURATION', 1)}</block>
   </category>
+  <category name="Variables" id="variables" colour="#FF8C1A" custom="VARIABLE"/>
   <category name="Operators" id="operators" colour="#59C059">
     <block type="operator_add">${num('NUM1', 0)}${num('NUM2', 0)}</block>
     <block type="operator_subtract">${num('NUM1', 0)}${num('NUM2', 0)}</block>
@@ -97,6 +98,8 @@ const MAP = [
   { old: 'control_wait_until', scratch: 'control_wait_until', numberInputs: {}, statements: {}, boolInputs: { CONDITION: 'CONDITION' } },
   { old: 'control_repeat', scratch: 'control_repeat', numberInputs: { TIMES: 'TIMES' }, statements: { DO: 'SUBSTACK' }, boolInputs: {} },
   { old: 'control_wait', scratch: 'control_wait', numberInputs: { SECONDS: 'DURATION' }, statements: {}, boolInputs: {} },
+  { old: 'data_setvariableto', scratch: 'data_setvariableto', numberInputs: { VALUE: 'VALUE' }, textInputs: ['VALUE'], varField: 'VARIABLE', statements: {}, boolInputs: {} },
+  { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
 const byScratch = Object.fromEntries(MAP.map((m) => [m.scratch, m]));
@@ -117,6 +120,25 @@ const REPORTERS = {
 // Operands that are text in Scratch (comparisons) use a text shadow; the rest use a number shadow.
 const TEXT_OPERANDS = new Set(['operator_lt', 'operator_gt', 'operator_equals']);
 
+// ---- Variables ----
+// Variables are global. Ids are derived from names, so blocks and the palette agree.
+const varId = (name) => `var_${name}`;
+const variableName = (block) => block.getField('VARIABLE')?.getText() ?? '';
+
+// The Variables palette: make a variable, one reporter per variable, and set/change for the first one.
+function variableFlyout(ws) {
+  const vars = ws.getVariableMap().getAllVariables().slice().sort((a, b) => a.name.localeCompare(b.name));
+  const field = (name) => `<field name="VARIABLE" id="${esc(varId(name))}" variabletype="">${esc(name)}</field>`;
+  const parts = ['<button text="Make a Variable" callbackKey="CREATE_VARIABLE"/>'];
+  for (const v of vars) parts.push(`<block type="data_variable">${field(v.name)}</block>`);
+  if (vars.length) {
+    parts.push(`<block type="data_setvariableto">${field(vars[0].name)}${txt('VALUE', 0)}</block>`);
+    parts.push(`<block type="data_changevariableby">${field(vars[0].name)}${num('VALUE', 1)}</block>`);
+  }
+  const dom = new DOMParser().parseFromString(`<xml xmlns="http://www.w3.org/1999/xhtml">${parts.join('')}</xml>`, 'text/xml').documentElement;
+  return Array.from(dom.children);
+}
+
 // ---- Reading a Scratch input value ----
 function literalOf(target) {
   const raw = target.getFieldValue('NUM') ?? target.getFieldValue('TEXT');
@@ -133,6 +155,7 @@ function inputToOld(block, scratchName) {
 }
 
 function reporterToOld(block) {
+  if (block.type === 'data_variable') return { type: 'data_variable', fields: { VARIABLE: variableName(block) } };
   const names = REPORTERS[block.type];
   if (!names) return undefined; // unknown reporters are not saved
   const out = { type: block.type };
@@ -151,6 +174,7 @@ function chainToOld(block) {
   if (!m) return undefined; // unknown block types are not saved
   const out = {};
   out.type = m.old;
+  if (m.varField) out.fields = { VARIABLE: variableName(block) };
   if (m.hat) {
     const body = chainToOld(block.getNextBlock());
     if (body) out.inputs = { DO: { block: body } };
@@ -176,6 +200,7 @@ function chainToOld(block) {
 }
 
 // ---- Our format -> Scratch XML ----
+const variableField = (name) => `<field name="VARIABLE" id="${esc(varId(name ?? ''))}" variabletype="">${esc(name ?? '')}</field>`;
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // A reporter (or literal) placed in an input.
@@ -199,6 +224,7 @@ function operandsXml(e, names) {
 
 // Any block (statement or reporter), without its `next` chain.
 function blockXml(e) {
+  if (e.type === 'data_variable') return `<block type="data_variable">${variableField(e.fields?.VARIABLE)}</block>`;
   if (REPORTERS[e.type]) return `<block type="${e.type}">${operandsXml(e, REPORTERS[e.type])}</block>`;
   return '';
 }
@@ -212,12 +238,16 @@ function chainToXml(json) {
     inner += `<next>${chainToXml(json.inputs?.DO?.block)}</next>`;
     return `<block type="${m.scratch}">${inner}</block>`;
   }
+  if (m.varField) inner += variableField(json.fields?.VARIABLE);
   for (const [oldName, scratchName] of Object.entries(m.numberInputs)) {
     if (json.inputs?.[oldName]?.block) {
       inner += reporterXml(json.inputs[oldName].block, scratchName);
     } else {
       const v = json.fields?.[oldName] ?? 0;
-      inner += `<value name="${scratchName}"><shadow type="math_number"><field name="NUM">${esc(v)}</field></shadow></value>`;
+      const text = (m.textInputs || []).includes(scratchName);
+      inner += text
+        ? `<value name="${scratchName}"><shadow type="text"><field name="TEXT">${esc(v)}</field></shadow></value>`
+        : `<value name="${scratchName}"><shadow type="math_number"><field name="NUM">${esc(v)}</field></shadow></value>`;
     }
   }
   for (const [oldName, scratchName] of Object.entries(m.boolInputs)) {
@@ -258,6 +288,23 @@ export function scratchAdapter(ws) {
         cb(e);
       });
     },
+    // Replaces the variables in the editor with these names (call inside quiet()).
+    setVariables(names) {
+      ws.getVariableMap().clear();
+      for (const name of names) ws.createVariable(name, '', varId(name));
+    },
+    removeVariable(name) {
+      const v = ws.getVariable(name);
+      if (v) ws.deleteVariableById(v.getId());
+    },
+    // Calls cb(name) when the user makes a variable from the palette.
+    onVariableCreated(cb) {
+      ws.addChangeListener((e) => {
+        if (e.type !== ScratchBlocks.Events.VAR_CREATE) return;
+        const v = ws.getVariableById(e.varId);
+        if (v) cb(v.name);
+      });
+    },
     resize() {
       ScratchBlocks.svgResize(ws);
     },
@@ -279,5 +326,6 @@ export function injectScratch(el) {
     zoom: { controls: true, startScale: 0.675 },
     theme: ScratchTheme,
   });
+  ws.registerToolboxCategoryCallback('VARIABLE', variableFlyout);
   return scratchAdapter(ws);
 }

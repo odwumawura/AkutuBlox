@@ -99,6 +99,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Log
 
 - 2026-10-09: Plan written. A1 started: scratch-blocks renders in a spike page; colours still open.
+- 2026-10-09: Blocks batch 6 (variables): make a variable (palette), set to, change by, variable reporter. Global to the stage, saved with the project, kept across runs. Limits: no sprite-only variables, rename or delete yet, no monitors, no lists. The make-variable prompt is the browser's prompt for now. Tests: `tests/variables_test.py`, fixture `tests/fixtures/variables.akutu`.
 - 2026-10-09: Blocks batch 5 (operators): + - × ÷, < > =, and/or/not as reporters inside any number or boolean input (nested). If-then and wait until. Comparisons are numeric for now; text comparison comes later. Tests: `tests/operators_test.py`, round trip extended.
 - 2026-10-09: Blocks batch 4 (control): forever (yields each pass, runs until Stop). Tests: `tests/control_test.py`. If, wait until and repeat until need boolean conditions (operators), so they come in a later batch.
 - 2026-10-09: Blocks batch 3 (looks): show, hide, change size by, set size to. Sprites reset to their starting look on green flag. Tests: `tests/looks_test.py`. Next costume and say bubbles are later batches.

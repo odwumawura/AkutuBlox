@@ -58,16 +58,33 @@ function markClean() {
 // Blocks editor: scratch-blocks.
 const blocksEditor = injectScratch(document.getElementById('blocklyDiv'));
 blocksEditor.onChange(() => markDirty());
+blocksEditor.onVariableCreated((name) => {
+  if (name.length > 40) {
+    alert('Variable names can be up to 40 characters.');
+    blocksEditor.removeVariable(name);
+    return;
+  }
+  stage.addVariable(name);
+  markDirty();
+});
 
 const stage = createStage(document.getElementById('stage'), document.getElementById('log'));
 
 // ----- Sprites and backdrops -----
 const blocksUi = { selectedId: null };
 
+// The project as it is now: the sprite being edited, sprite starts, and variable values.
+function snapshotBlocksProject(base) {
+  const project = blocksProjectFromWorkspace(base, blocksEditor, stage.getStarts(), blocksUi.selectedId);
+  // Blocks refer to variables by name; the saved id only needs to be unique and match the schema.
+  project.blocks.stage.variables = stage.getVariables().map((v, i) => ({ id: `v${i + 1}`, name: v.name, value: v.value }));
+  return project;
+}
+
 // Saves the sprite being edited back into the project document.
 function saveSelectedSprite() {
   if (!state.project || state.project.mode !== 'blocks' || !blocksUi.selectedId) return;
-  state.project = blocksProjectFromWorkspace(state.project, blocksEditor, stage.getStarts(), blocksUi.selectedId);
+  state.project = snapshotBlocksProject(state.project);
 }
 
 // Code for one sprite, generated from its saved scripts.
@@ -402,7 +419,7 @@ function currentProjectDocument() {
   const base = state.project;
   const project =
     base.mode === 'blocks'
-      ? blocksProjectFromWorkspace(base, blocksEditor, stage.getStarts(), blocksUi.selectedId)
+      ? snapshotBlocksProject(base)
       : buildSiteProject();
   project.meta.name = el.name.value.trim() || 'Untitled';
   return project;
@@ -462,4 +479,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites(), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };
+window.__akutu = { sprites: () => stage.getSprites(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };

@@ -26,6 +26,13 @@ function value(b, name) {
   return String(num(b.fields?.[name]));
 }
 
+// A value that can be text or a number: a reporter, or the literal as saved.
+function literalOrReporter(b, name) {
+  const reporter = b.inputs?.[name]?.block;
+  if (reporter) return `(${expr(reporter)})`;
+  return JSON.stringify(b.fields?.[name] ?? 0);
+}
+
 // A boolean input: a reporter, or false when empty.
 function condition(b, name) {
   const reporter = b.inputs?.[name]?.block;
@@ -43,6 +50,7 @@ const bool = (e, name) => {
 
 // Reporters (expressions). Each returns a JS expression.
 const EXPR = {
+  data_variable: (e) => `(await sprite.getVar(${JSON.stringify(e.fields?.VARIABLE ?? '')}))`,
   operator_add: (e) => `(${operand(e, 'NUM1')} + ${operand(e, 'NUM2')})`,
   operator_subtract: (e) => `(${operand(e, 'NUM1')} - ${operand(e, 'NUM2')})`,
   operator_multiply: (e) => `(${operand(e, 'NUM1')} * ${operand(e, 'NUM2')})`,
@@ -74,6 +82,8 @@ const GEN = {
   control_forever: (b) => `for (;;) {\nawait sprite.tick();\n${body(b, 'DO')}}\n`,
   control_if: (b) => `if (${condition(b, 'CONDITION')}) {\n${body(b, 'DO')}}\n`,
   control_wait_until: (b) => `while (!${condition(b, 'CONDITION')}) {\nawait sprite.tick();\n}\n`,
+  data_setvariableto: (b) => `await sprite.setVar(${JSON.stringify(b.fields?.VARIABLE ?? '')}, ${literalOrReporter(b, 'VALUE')});\n`,
+  data_changevariableby: (b) => `await sprite.changeVar(${JSON.stringify(b.fields?.VARIABLE ?? '')}, ${value(b, 'VALUE')});\n`,
   control_wait: (b) => `await sprite.wait(${value(b, 'SECONDS')});\n`,
 };
 

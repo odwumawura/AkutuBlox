@@ -5,6 +5,8 @@
 let state = { x: 0, y: 0, dir: 90, visible: true, size: 100 };
 let handlers = [];
 const waiters = []; // FIFO: each posted state waits for one 'continue'
+let varSeq = 0;
+const varWaiters = new Map(); // variable reads waiting for the main thread's answer
 
 const W = 480;
 const H = 360;
@@ -86,6 +88,21 @@ const api = {
   async tick() {
     await new Promise((r) => setTimeout(r, 0));
   },
+  // Variables are shared by all sprites and live on the main thread.
+  getVar(name) {
+    const id = ++varSeq;
+    return new Promise((resolve) => {
+      varWaiters.set(id, resolve);
+      post({ type: 'getVar', id, name: String(name) });
+    });
+  },
+  setVar(name, value) {
+    post({ type: 'setVar', name: String(name), value });
+  },
+  async changeVar(name, delta) {
+    const cur = await api.getVar(name);
+    api.setVar(name, (Number(cur) || 0) + Number(delta));
+  },
   async wait(seconds) {
     await new Promise((r) => setTimeout(r, seconds * 1000));
   },
@@ -102,6 +119,14 @@ self.onmessage = (event) => {
   if (msg.type === 'continue') {
     const next = waiters.shift();
     if (next) next();
+    return;
+  }
+  if (msg.type === 'varValue') {
+    const resolve = varWaiters.get(msg.id);
+    if (resolve) {
+      varWaiters.delete(msg.id);
+      resolve(msg.value);
+    }
     return;
   }
   if (msg.type === 'run') {

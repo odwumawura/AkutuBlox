@@ -136,6 +136,9 @@ export function stageSpritesFromProject(project) {
 
 export function loadBlocksProject(project, editor, runtime, selectedId) {
   const sprite = project.blocks.sprites.find((s) => s.id === selectedId) || project.blocks.sprites[0];
+  const variables = project.blocks.stage.variables || [];
+  editor.setVariables(variables.map((v) => v.name));
+  runtime.setVariables(variables);
   loadSpriteScripts(editor, sprite);
   runtime.setSprites(stageSpritesFromProject(project));
   return sprite.id;

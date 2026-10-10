@@ -12,6 +12,7 @@ export function createStage(canvas, logEl) {
   let backdrop = 'builtin:meadow';
   let workers = new Map();
   let starts = new Map();
+  let variables = new Map(); // name -> value, shared by all sprites
 
   const log = (msg) => {
     logEl.textContent += msg + '\n';
@@ -56,6 +57,10 @@ export function createStage(canvas, logEl) {
         if (s) sprites.set(id, { ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size });
         draw();
         w.postMessage({ type: 'continue' });
+      } else if (msg.type === 'getVar') {
+        w.postMessage({ type: 'varValue', id: msg.id, value: variables.get(msg.name) ?? 0 });
+      } else if (msg.type === 'setVar') {
+        variables.set(msg.name, msg.value);
       } else if (msg.type === 'error') {
         log(`error (${sprites.get(id)?.name || id}): ${msg.message}`);
       }
@@ -97,6 +102,19 @@ export function createStage(canvas, logEl) {
     draw();
   }
 
+  // list: [{ name, value }]. Variables keep their values across green-flag runs.
+  function setVariables(list) {
+    variables = new Map((list || []).map((v) => [v.name, v.value]));
+  }
+
+  function addVariable(name) {
+    if (!variables.has(name)) variables.set(name, 0);
+  }
+
+  function getVariables() {
+    return [...variables].map(([name, value]) => ({ name, value }));
+  }
+
   function setBackdrop(source) {
     backdrop = source;
     draw();
@@ -111,5 +129,5 @@ export function createStage(canvas, logEl) {
     return [...starts].map(([id, p]) => ({ id, ...p }));
   }
 
-  return { greenFlag, stop, setSprites, setBackdrop, getSprites, getStarts };
+  return { greenFlag, stop, setSprites, setBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
 }
