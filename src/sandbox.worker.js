@@ -4,9 +4,10 @@
 
 const ROTATION_STYLES = ['all around', 'left-right', "don't rotate"];
 
-let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false };
+let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false, volume: 100 };
 let handlers = []; // green-flag scripts
 let eventHandlers = []; // key, click and message scripts: { kind, key | name, fn }
+let customBlocks = new Map(); // My Blocks defined by this sprite: name -> body
 const waiters = []; // FIFO: each posted state waits for one 'continue'
 let askSeq = 0;
 const answers = new Map(); // requests waiting for the main thread's answer
@@ -172,6 +173,32 @@ const api = {
     const cur = await api.getVar(name);
     api.setVar(name, (Number(cur) || 0) + Number(delta));
   },
+  // Sound: built-in sounds, played on the main thread. Volume is a percentage for this sprite.
+  // 'until done' waits for the sound to end; otherwise the sound starts and the script goes on.
+  playSound(name, wait) {
+    return ask({ what: 'sound', name: String(name), volume: state.volume, wait: wait === true });
+  },
+  async stopAllSounds() {
+    post({ type: 'sound', op: 'stop' });
+    await api.tick();
+  },
+  async setVolume(v) {
+    state.volume = Math.max(0, Math.min(100, Number(v) || 0));
+    await api.tick();
+  },
+  async changeVolume(d) {
+    state.volume = Math.max(0, Math.min(100, state.volume + (Number(d) || 0)));
+    await api.tick();
+  },
+  // My Blocks (sprite-local). A define hat registers its body when the program starts; a call runs it.
+  // Calling a block that was never defined does nothing.
+  defineBlock(name, fn) {
+    customBlocks.set(String(name), fn);
+  },
+  async callBlock(name) {
+    const fn = customBlocks.get(String(name));
+    if (fn) await fn();
+  },
   async wait(seconds) {
     await new Promise((r) => setTimeout(r, seconds * 1000));
   },
@@ -217,9 +244,10 @@ self.onmessage = (event) => {
     return;
   }
   if (msg.type === 'run') {
-    state = { ...msg.state };
+    state = { ...msg.state, volume: 100 };
     handlers = [];
     eventHandlers = [];
+    customBlocks = new Map();
     try {
       // Shadow network globals so generated code can't use them, even though our generators never emit them.
       const program = new Function('sprite', 'fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', msg.code);

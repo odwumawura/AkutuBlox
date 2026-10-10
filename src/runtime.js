@@ -1,6 +1,7 @@
 // Stage for Blocks mode. Each sprite's generated code runs in its own sandboxed Web Worker.
 // The workers only post state; this file draws the stage and relays messages.
 import { backdropColor, costumeColor } from './sprites.js';
+import { createSoundPlayer } from './sounds.js';
 
 // Sets a sprite's costume by index, wrapping like Scratch. Keeps `costume` (the source) in step.
 function atCostume(s, idx) {
@@ -21,6 +22,8 @@ export function createStage(canvas, logEl) {
   let backdropIndex = 0;
   let backdrop = 'builtin:meadow';
   let workers = new Map();
+  const images = new Map(); // asset path -> Image, for uploaded costumes and backdrops
+  const sound = createSoundPlayer();
   let starts = new Map();
   let variables = new Map(); // name -> value, shared by all sprites
   const mouse = { x: 0, y: 0, down: false }; // stage coordinates, origin at centre, y up
@@ -130,6 +133,8 @@ export function createStage(canvas, logEl) {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = backdropColor(backdrop);
     ctx.fillRect(0, 0, W, H);
+    const bg = images.get(backdrop);
+    if (bg && bg.complete && bg.naturalWidth) ctx.drawImage(bg, 0, 0, W, H);
     for (const s of sprites.values()) {
       if (!s.visible) continue;
       // Logical coordinates (origin at centre, y up) -> canvas pixels.
@@ -140,6 +145,14 @@ export function createStage(canvas, logEl) {
       if (style === 'all around') ctx.rotate(((s.dir - 90) * Math.PI) / 180);
       else if (style === 'left-right' && Math.sin((s.dir * Math.PI) / 180) < 0) ctx.scale(-1, 1);
       ctx.scale(s.size / 100, s.size / 100);
+      const img = images.get(s.costume);
+      if (img && img.complete && img.naturalWidth) {
+        // An uploaded costume is drawn at its own size, scaled down to fit about 120 units, centred on the sprite.
+        const k = Math.min(1, 120 / Math.max(img.naturalWidth, img.naturalHeight));
+        ctx.drawImage(img, (-img.naturalWidth * k) / 2, (-img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+        ctx.restore();
+        continue;
+      }
       ctx.fillStyle = costumeColor(s.costume);
       ctx.strokeStyle = backdrop === 'builtin:night' ? '#ffffff' : '#1f2937';
       ctx.lineWidth = 2;
@@ -167,6 +180,11 @@ export function createStage(canvas, logEl) {
         if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size, rotationStyle: msg.state.rotationStyle, draggable: msg.state.draggable }, msg.state.costume));
         draw();
         w.postMessage({ type: 'continue' });
+      } else if (msg.type === 'ask' && msg.what === 'sound') {
+        // Sounds that wait for the end are answered when they finish.
+        sound.play(msg.name, msg.volume, msg.wait).then(() => w.postMessage({ type: 'answer', id: msg.id, value: null }));
+      } else if (msg.type === 'sound') {
+        sound.stopAll();
       } else if (msg.type === 'ask') {
         w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg, id) });
       } else if (msg.type === 'ready') {
@@ -194,6 +212,7 @@ export function createStage(canvas, logEl) {
 
   function stop() {
     pendingReady = null;
+    sound.stopAll();
     if (workers.size) {
       for (const w of workers.values()) w.terminate();
       workers = new Map();
@@ -266,6 +285,18 @@ export function createStage(canvas, logEl) {
     return { index: backdropIndex, name: backdrops[backdropIndex].name, source: backdrop };
   }
 
+  // urls: Map from asset path to an object URL. Each image loads once; the stage redraws when it is ready.
+  function setAssets(urls) {
+    for (const [src, url] of urls) {
+      if (images.has(src)) continue;
+      const img = new Image();
+      img.onload = () => draw();
+      img.src = url;
+      images.set(src, img);
+    }
+    draw();
+  }
+
   function getSprites() {
     return [...sprites.values()].map((s) => ({ ...s }));
   }
@@ -275,5 +306,5 @@ export function createStage(canvas, logEl) {
     return [...starts].map(([id, p]) => ({ id, ...p }));
   }
 
-  return { greenFlag, stop, setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
+  return { greenFlag, stop, setAssets, getSoundLog: () => sound.log(), setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
 }

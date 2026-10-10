@@ -39,10 +39,10 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A3 decision (corrected): our own runtime, not scratch-vm.** scratch-vm and scratch-storage are AGPL-3.0 (my earlier "BSD-3" was wrong; checked from the installed LICENSE files). Hosting them would require publishing the whole app under AGPL, so they were removed. We keep our own runtime (stage plus sandbox worker, code from `src/codegen.js`) and grow its block set ourselves under our own licence. User approved this path.
 - [x] **A4. Switch Blocks mode to scratch-blocks.** Done: scratch-blocks is the default. The saved `.akutu` format and the runtime are unchanged; `src/editor-scratch.js` converts both ways.  All 9 suites pass on both editors, plus the new `tests/blocks_roundtrip_test.py`.
 - [x] **A5. Remove the old Blockly block code** (done: old editor, `src/blocks.js`, and the scratch-blocks spike page removed; `src/codegen.js` replaces the generator and gives the same code for the same scripts). Blockly stays only for the Web interactions editor.
-- [ ] **A6. Categories** (Events done in batch 12; Sound and My Blocks still to do) (Phase 1 requires full Scratch 3.0): Motion, Looks, Sound, Events, Control, Sensing, Operators, Variables, My Blocks.
+- [x] **A6. Categories** (Phase 1 requires full Scratch 3.0): Motion, Looks, Sound, Events, Control, Sensing, Operators, Variables, My Blocks. All nine are in (batches 12–15). Limits: My Blocks have no inputs yet; sounds are four built-in ones (no sound uploads); volume applies to sounds started after it is set.
 - [x] **A7. Sprite features:** visible, size, costume switching, rotation style, drag sprites on the stage (done in batches 9 and 11).
-- [ ] **A8. Backdrops and costumes from files** (uploads to `assets/`). Needs asset handling and a size limit.
-- [?] **A8 decision:** art style for the built-in costumes and backdrops (current ones are simple shapes).
+- [x] **A8. Backdrops and costumes from files** (uploads to `assets/`, 512 KB per image). Done in batch 15. Limits: costume and backdrop images only (PNG, JPEG, GIF); the touching check still uses the circle, not the image shape; rotation centre is the image centre.
+- [x] **A8 decision:** flat vector art for the built-in costumes and backdrops (the current simple shapes). Decided by you.
 - [ ] **A9. Blocks-mode tests:** one browser test per category, plus a sprite-and-backdrop round trip.
 
 ## Track B: Web builder (Phase 1, mostly done)
@@ -93,7 +93,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 ## Decisions needed from you
 
 1. **A3:** resolved: our own runtime (scratch-vm is AGPL-3.0).
-2. **A8:** art style for costumes and backdrops.
+2. ~~**A8:** art style for costumes and backdrops.~~ Resolved: flat vector.
 3. **C3:** scope of text coding in Phase 2.
 
 ## Log
@@ -115,3 +115,6 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - 2026-10-09: A5 done: old Blockly block code removed.
 - 2026-10-09: A4 done: scratch-blocks is the Blocks editor (old one at ?editor=blockly). Round-trip test added.
 - 2026-10-09: Web blocks → live preview fixed (B0). Mascot research (M0) done. A3 approved. A1 done (scratch-blocks colours fixed). Drag test in suite.
+- 2026-10-10: Blocks batch 13 (A6, Sound): play sound [name] until done, start sound [name], stop all sounds, set volume to [n], change volume by [n]. Four built-in sounds (Pop, Chime, Boing, Click), made with the Web Audio API so no files are needed. Volume is per sprite, a percentage, and resets at green flag. Stop ends waiting sounds early. Limits: sounds cannot be uploaded; volume does not change sounds that are already playing. Tests: `tests/sound_test.py`; round-trip scripts 13–15 added.
+- 2026-10-10: Blocks batch 14 (A6, My Blocks): define [name] (a hat with its body) and call [name] (a dropdown of the defines in the editor). Blocks are per sprite; a define on its own does nothing, and calling an undefined block does nothing. Limits: no inputs or outputs yet; renaming a define leaves old calls pointing at the old name. Tests: `tests/my_blocks_test.py`; round-trip script 16 added.
+- 2026-10-10: Blocks batch 15 (A8, uploads): Upload costume… (for the sprite being edited) and Upload backdrop… (for the stage). PNG, JPEG or GIF, up to 512 KB each. A project with uploads is saved as a zip bundle (project.json plus assets/…, as the schema says); a project without uploads stays a plain JSON file. Opening reads both. Uploaded backdrops become the starting backdrop. Limits: images are drawn at their own size, scaled to fit about 120 units; the touch check still uses the circle; no total size limit yet. Tests: `tests/uploads_test.py`.

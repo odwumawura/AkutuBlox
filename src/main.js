@@ -19,6 +19,7 @@ import {
   loadWebPage,
   downloadProject,
   readProjectFile,
+  readImageUpload,
 } from './project.js';
 import { siteFiles, previewHtml, treeFromEditor, PALETTE } from './web/model.js';
 import {
@@ -31,7 +32,8 @@ import {
 } from './web/interactions.js';
 
 // ---------- Shared state ----------
-const state = { mode: 'blocks', project: null, dirty: false, loading: false, webPageId: 'home', webSnapshot: '' };
+const state = { mode: 'blocks', project: null, dirty: false, loading: false, webPageId: 'home', webSnapshot: '', assets: new Map() }; // assets: asset path -> Blob (uploads)
+const assetUrls = new Map(); // asset path -> object URL, made once per file
 
 const el = {
   tabs: { blocks: document.getElementById('tab-blocks'), web: document.getElementById('tab-web') },
@@ -92,7 +94,14 @@ function codeForSprite(sprite) {
   return codeForScripts(sprite.scripts);
 }
 
+// Gives the stage a URL for each uploaded image (see project.js for the bundle format).
+function syncAssets() {
+  for (const [src, blob] of state.assets) if (!assetUrls.has(src)) assetUrls.set(src, URL.createObjectURL(blob));
+  stage.setAssets(assetUrls);
+}
+
 function refreshStage() {
+  syncAssets();
   setSpriteNames(state.project.blocks.sprites.map((s) => s.name));
   syncCostumeNames();
   stage.setSprites(stageSpritesFromProject(state.project));
@@ -166,20 +175,72 @@ function deleteSprite(id) {
   selectSprite(next.id);
 }
 
+// Built-in backdrops, then the uploaded ones in the project.
 function renderBackdropSelect() {
   const select = document.getElementById('backdrop-select');
-  const current = state.project?.blocks?.stage?.backdrops?.[0]?.source || 'builtin:meadow';
-  select.replaceChildren(...Object.entries(BACKDROPS).map(([key, b]) => new Option(b.label, key, false, key === current)));
+  const backdrops = state.project?.blocks?.stage?.backdrops || [];
+  const current = backdrops[0]?.source || 'builtin:meadow';
+  const uploaded = backdrops.filter((b) => b.source.startsWith('assets/'));
+  select.replaceChildren(
+    ...Object.entries(BACKDROPS).map(([key, b]) => new Option(b.label, key, false, key === current)),
+    ...uploaded.map((b) => new Option(b.name, b.source, false, b.source === current)),
+  );
 }
 
 function chooseBackdrop(source) {
   const stageInfo = state.project.blocks.stage;
   const rest = stageInfo.backdrops.filter((b) => b.source !== source);
-  const asset = { id: `bg-${source.split(':')[1]}`, name: BACKDROPS[source]?.label || source, type: 'vector', source };
+  const existing = stageInfo.backdrops.find((b) => b.source === source);
+  const asset = existing || { id: `bg-${source.split(':')[1]}`, name: BACKDROPS[source]?.label || source, type: 'vector', source };
   stageInfo.backdrops = [asset, ...rest];
   markDirty();
   refreshStage();
 }
+
+// A name that is not used yet in the list: "Red", then "Red 2", "Red 3"...
+function uniqueName(list, base) {
+  const name = (base || 'Image').slice(0, 50);
+  const taken = new Set(list.map((x) => x.name));
+  let n = name, i = 2;
+  while (taken.has(n)) n = `${name} ${i++}`;
+  return n;
+}
+
+// ---------- Uploads (A8): a costume for the sprite being edited, or a backdrop for the stage ----------
+let uploadTarget = null; // 'costume' or 'backdrop': set by the button that opened the file picker
+const uploadInput = document.getElementById('upload-image');
+document.getElementById('add-costume').addEventListener('click', () => { uploadTarget = 'costume'; uploadInput.click(); });
+document.getElementById('add-backdrop').addEventListener('click', () => { uploadTarget = 'backdrop'; uploadInput.click(); });
+uploadInput.addEventListener('change', async () => {
+  const file = uploadInput.files[0];
+  uploadInput.value = '';
+  if (!file || !state.project || state.project.mode !== 'blocks') return;
+  const target = uploadTarget;
+  const result = await readImageUpload(file);
+  if (!result.ok) {
+    alert(result.error);
+    return;
+  }
+  const base = file.name.replace(/\.[^.]+$/, '');
+  if (target === 'costume') {
+    saveSelectedSprite();
+    const sprite = state.project.blocks.sprites.find((s) => s.id === blocksUi.selectedId);
+    if (!sprite) return;
+    sprite.costumes = sprite.costumes || [];
+    sprite.costumes.push({
+      id: `cos-${result.source.slice(7, -4)}`, name: uniqueName(sprite.costumes, base), type: 'image', source: result.source,
+      width: result.width, height: result.height, rotationCenterX: result.width / 2, rotationCenterY: result.height / 2,
+    });
+  } else {
+    const stageInfo = state.project.blocks.stage;
+    // Like choosing a built-in backdrop: the new one becomes the starting backdrop.
+    stageInfo.backdrops = [{ id: `bg-${result.source.slice(7, -4)}`, name: uniqueName(stageInfo.backdrops, base), type: 'image', source: result.source, width: result.width, height: result.height }, ...stageInfo.backdrops];
+  }
+  state.assets.set(result.source, file);
+  markDirty();
+  refreshStage();
+  renderBackdropSelect();
+});
 
 document.getElementById('add-sprite').addEventListener('click', addSprite);
 document.getElementById('backdrop-select').addEventListener('change', (e) => chooseBackdrop(e.target.value));
@@ -386,7 +447,8 @@ function showView(mode) {
   if (mode === 'blocks') blocksEditor.resize();
 }
 
-function loadIntoEditors(project) {
+function loadIntoEditors(project, assets = new Map()) {
+  state.assets = assets;
   state.loading = true;
   Blockly.Events.disable();
   try {
@@ -439,9 +501,9 @@ function currentProjectDocument() {
   return project;
 }
 
-function saveCurrent() {
+async function saveCurrent() {
   const project = currentProjectDocument();
-  downloadProject(project);
+  await downloadProject(project, state.assets);
   state.project = project;
   markClean();
 }
@@ -467,7 +529,7 @@ async function openFile(file) {
     alert('Could not open this project:\n\n' + result.errors.slice(0, 5).join('\n'));
     return;
   }
-  loadIntoEditors(result.project);
+  loadIntoEditors(result.project, result.assets ?? new Map());
 }
 
 // ---------- Wiring ----------
@@ -493,4 +555,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };
+window.__akutu = { sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };

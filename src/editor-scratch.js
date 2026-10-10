@@ -1,3 +1,4 @@
+import { SOUND_NAMES } from './sounds.js';
 // Blocks editor on scratch-blocks (Scratch's own editor, Apache-2.0).
 // The saved project keeps our block format (see codegen.js), so the runtime and .akutu files stay simple.
 // This file converts both ways: Scratch blocks <-> our format.
@@ -45,6 +46,16 @@ export function setBackdropNames(names) {
 }
 const backdropOptions = () => (backdropNames.length ? backdropNames.map((n) => [n, n]) : [['(no backdrops)', '']]);
 const spriteOptions = () => (spriteNames.length ? spriteNames.map((n) => [n, n]) : [['(no sprites)', '']]);
+
+// Built-in sound names (see sounds.js). Sound blocks take a name from this list.
+const soundOptions = () => SOUND_NAMES.map((n) => [n, n]);
+
+// My Blocks: the call-block dropdown lists the define blocks in the editor, so it is always current.
+let liveWs = null;
+const blockNameOptions = () => {
+  const names = liveWs ? liveWs.getAllBlocks(false).filter((b) => b.type === 'myblock_define').map((b) => b.getFieldValue('NAME')).filter(Boolean) : [];
+  return names.length ? names.map((n) => [n, n]) : [['(no blocks)', '']];
+};
 
 // Keys a script can wait for: the arrows, space, any key, letters and digits (same names as Scratch).
 const KEY_OPTIONS = [
@@ -104,6 +115,43 @@ ScratchBlocks.defineBlocksWithJsonArray([
     args0: [{ type: 'field_input', name: 'MSG', text: 'message1' }],
     extensions: ['colours_event', 'shape_statement'],
   },
+  {
+    type: 'sound_playuntil',
+    message0: 'play sound %1 until done',
+    args0: [{ type: 'field_dropdown', name: 'SOUND', options: soundOptions }],
+    extensions: ['colours_sounds', 'shape_statement'],
+  },
+  {
+    type: 'sound_start',
+    message0: 'start sound %1',
+    args0: [{ type: 'field_dropdown', name: 'SOUND', options: soundOptions }],
+    extensions: ['colours_sounds', 'shape_statement'],
+  },
+  { type: 'sound_stopall', message0: 'stop all sounds', extensions: ['colours_sounds', 'shape_statement'] },
+  {
+    type: 'sound_setvolume',
+    message0: 'set volume to %1',
+    args0: [{ type: 'input_value', name: 'VOLUME', check: 'Number' }],
+    extensions: ['colours_sounds', 'shape_statement'],
+  },
+  {
+    type: 'sound_changevolume',
+    message0: 'change volume by %1',
+    args0: [{ type: 'input_value', name: 'VOLUME', check: 'Number' }],
+    extensions: ['colours_sounds', 'shape_statement'],
+  },
+  {
+    type: 'myblock_define',
+    message0: 'define %1',
+    args0: [{ type: 'field_input', name: 'NAME', text: 'my block' }],
+    extensions: ['colours_more', 'shape_hat'],
+  },
+  {
+    type: 'myblock_call',
+    message0: 'call %1',
+    args0: [{ type: 'field_dropdown', name: 'BLOCK', options: blockNameOptions }],
+    extensions: ['colours_more', 'shape_statement'],
+  },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -154,6 +202,17 @@ export const TOOLBOX_XML = `
     <block type="motion_setrotation"/>
   </category>
   <category name="Looks" id="looks" colour="#9966FF">${looksBlocks()}
+  </category>
+  <category name="Sound" id="sound" colour="#CF63CF">
+    <block type="sound_playuntil"/>
+    <block type="sound_start"/>
+    <block type="sound_stopall"/>
+    <block type="sound_setvolume">${num('VOLUME', 100)}</block>
+    <block type="sound_changevolume">${num('VOLUME', -10)}</block>
+  </category>
+  <category name="My Blocks" id="myblocks" colour="#FF6680">
+    <block type="myblock_define"/>
+    <block type="myblock_call"/>
   </category>
   <category name="Control" id="control" colour="#FFAB19">
     <block type="control_forever"/>
@@ -215,6 +274,13 @@ const MAP = [
   { old: 'looks_nextbackdrop', scratch: 'looks_nextbackdrop', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'motion_setrotation', scratch: 'motion_setrotation', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'STYLE' },
   { old: 'sensing_setdrag', scratch: 'sensing_setdrag', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'MODE' },
+  { old: 'sound_playuntil', scratch: 'sound_playuntil', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'SOUND' },
+  { old: 'sound_start', scratch: 'sound_start', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'SOUND' },
+  { old: 'sound_stopall', scratch: 'sound_stopall', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'sound_setvolume', scratch: 'sound_setvolume', numberInputs: { VOLUME: 'VOLUME' }, statements: {}, boolInputs: {} },
+  { old: 'sound_changevolume', scratch: 'sound_changevolume', numberInputs: { VOLUME: 'VOLUME' }, statements: {}, boolInputs: {} },
+  { old: 'myblock_define', scratch: 'myblock_define', hat: true, numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'NAME' },
+  { old: 'myblock_call', scratch: 'myblock_call', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'BLOCK' },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
@@ -462,5 +528,6 @@ export function injectScratch(el) {
     const make = freshFlyouts[toolbox?.getSelectedItem?.()?.getName?.()];
     if (make) toolbox.getFlyout().show(flyoutFrom(make()));
   });
+  liveWs = ws;
   return scratchAdapter(ws);
 }

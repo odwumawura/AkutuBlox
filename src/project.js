@@ -2,7 +2,13 @@
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import schema from '../schema/project.schema.json';
+import JSZip from 'jszip';
 import { treeFromEditor, toEditor } from './web/model.js';
+
+// Uploaded images (A8). A project with uploads is saved as a zip bundle: project.json plus assets/.
+// A project without uploads stays a plain JSON file, as before.
+export const UPLOAD_LIMIT = 512 * 1024; // bytes per image
+export const UPLOAD_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif' };
 
 const APP_VERSION = '0.0.1';
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -172,9 +178,41 @@ export function loadWebPage(project, pageId, editor) {
 
 // ---- Files ----
 
-export function downloadProject(project) {
+// The asset paths a project uses (costumes and backdrops that were uploaded).
+export function assetSources(project) {
+  const out = new Set();
+  for (const s of project.blocks?.sprites || []) for (const c of s.costumes || []) if (c.source?.startsWith('assets/')) out.add(c.source);
+  for (const b of project.blocks?.stage?.backdrops || []) if (b.source?.startsWith('assets/')) out.add(b.source);
+  return [...out];
+}
+
+// Checks an image before it is added. Returns { ok, error, source, width, height }.
+export async function readImageUpload(file) {
+  const ext = UPLOAD_TYPES[file.type];
+  if (!ext) return { ok: false, error: 'Use a PNG, JPEG or GIF image.' };
+  if (file.size > UPLOAD_LIMIT) return { ok: false, error: `That image is ${Math.round(file.size / 1024)} KB. The limit is ${UPLOAD_LIMIT / 1024} KB.` };
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return { ok: false, error: 'That file is not a readable image.' };
+  }
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  return { ok: true, source: `assets/${id}.${ext}`, width: bitmap.width, height: bitmap.height };
+}
+
+export async function downloadProject(project, assets = new Map()) {
   const safeName = (project.meta.name || 'project').replace(/[^a-z0-9-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'project';
-  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+  const used = assetSources(project).filter((src) => assets.has(src));
+  let blob;
+  if (used.length) {
+    const zip = new JSZip();
+    zip.file('project.json', JSON.stringify(project, null, 2));
+    for (const src of used) zip.file(src, assets.get(src), { createFolders: false });
+    blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  } else {
+    blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `${safeName}.akutu`;
@@ -182,7 +220,11 @@ export function downloadProject(project) {
   URL.revokeObjectURL(a.href);
 }
 
+const MIME_BY_EXT = { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif' };
+
 export async function readProjectFile(file) {
+  const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
+  if (head[0] === 0x50 && head[1] === 0x4b) return readBundle(file); // "PK": a zip bundle with assets
   const text = await file.text();
   let project;
   try {
@@ -191,4 +233,29 @@ export async function readProjectFile(file) {
     return { ok: false, errors: ['This file is not valid JSON.'] };
   }
   return { ...validateProject(project), project };
+}
+
+async function readBundle(file) {
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(file);
+  } catch {
+    return { ok: false, errors: ['This project bundle could not be read.'] };
+  }
+  const entry = zip.file('project.json');
+  if (!entry) return { ok: false, errors: ['The bundle has no project.json.'] };
+  let project;
+  try {
+    project = JSON.parse(await entry.async('string'));
+  } catch {
+    return { ok: false, errors: ['The bundle has an invalid project.json.'], project: null, assets: new Map() };
+  }
+  const assets = new Map();
+  for (const f of Object.values(zip.files)) {
+    if (f.dir || !f.name.startsWith('assets/')) continue;
+    const ext = f.name.split('.').pop().toLowerCase();
+    const bytes = await f.async('uint8array');
+    assets.set(f.name, new Blob([bytes], { type: MIME_BY_EXT[ext] || 'application/octet-stream' }));
+  }
+  return { ...validateProject(project), project, assets };
 }

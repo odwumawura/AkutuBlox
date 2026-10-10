@@ -18,6 +18,7 @@
         <button id="new" class="secondary">New</button>
         <button id="open" class="secondary">Open</button>
         <input id="open-file" type="file" accept=".akutu,application/json" hidden />
+        <input id="upload-image" type="file" accept="image/png,image/jpeg,image/gif" hidden />
         <button id="save" class="primary">Save</button>
       </div>
     </header>
@@ -36,7 +37,9 @@
               <div class="sprite-actions">
                 <select id="new-costume" aria-label="Costume for a new sprite"></select>
                 <button id="add-sprite" class="secondary">+ Sprite</button>
+                <button id="add-costume" class="secondary">Upload costume…</button>
                 <label class="backdrop-row">Backdrop <select id="backdrop-select" aria-label="Backdrop"></select></label>
+                <button id="add-backdrop" class="secondary">Upload backdrop…</button>
               </div>
             </div>
             <canvas id="stage" width="480" height="360"></canvas>

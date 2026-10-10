@@ -99,6 +99,13 @@ const GEN = {
   control_wait_until: (b) => `while (!${condition(b, 'CONDITION')}) {\nawait sprite.tick();\n}\n`,
   data_setvariableto: (b) => `await sprite.setVar(${JSON.stringify(b.fields?.VARIABLE ?? '')}, ${literalOrReporter(b, 'VALUE')});\n`,
   data_changevariableby: (b) => `await sprite.changeVar(${JSON.stringify(b.fields?.VARIABLE ?? '')}, ${value(b, 'VALUE')});\n`,
+  sound_playuntil: (b) => `await sprite.playSound(${JSON.stringify(b.fields?.SOUND ?? 'Pop')}, true);\n`,
+  sound_start: (b) => `await sprite.playSound(${JSON.stringify(b.fields?.SOUND ?? 'Pop')}, false);\n`,
+  sound_stopall: () => 'await sprite.stopAllSounds();\n',
+  sound_setvolume: (b) => `await sprite.setVolume(${value(b, 'VOLUME')});\n`,
+  sound_changevolume: (b) => `await sprite.changeVolume(${value(b, 'VOLUME')});\n`,
+  myblock_define: (b) => `sprite.defineBlock(${JSON.stringify(b.fields?.NAME ?? '')}, async () => {\n${body(b, 'DO')}});\n`,
+  myblock_call: (b) => `await sprite.callBlock(${JSON.stringify(b.fields?.BLOCK ?? '')});\n`,
   control_wait: (b) => `await sprite.wait(${value(b, 'SECONDS')});\n`,
 };
 

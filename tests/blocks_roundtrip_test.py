@@ -89,6 +89,14 @@ SCRIPTS = [
     {"id": "s-10", "x": 600, "y": 1000, "blocks": [R10]},
     {"id": "s-11", "x": 600, "y": 1200, "blocks": [R11]},
     {"id": "s-12", "x": 600, "y": 1400, "blocks": [R12]},
+    {"id": "s-13", "x": 600, "y": 1600, "blocks": [{"type": "event_key", "fields": {"KEY": "up arrow"}, "inputs": {"DO": {"block": {"type": "event_broadcast", "fields": {"MSG": "hello"}}}}}]},
+    {"id": "s-14", "x": 600, "y": 1800, "blocks": [{"type": "event_click", "inputs": {"DO": {"block": {"type": "sound_start", "fields": {"SOUND": "Boing"},
+        "next": {"block": {"type": "sound_setvolume", "inputs": {"VOLUME": {"block": {"type": "math_number", "fields": {"NUM": 50}}}},
+            "next": {"block": {"type": "sound_changevolume", "inputs": {"VOLUME": {"block": {"type": "math_number", "fields": {"NUM": -10}}}},
+                "next": {"block": {"type": "sound_stopall"}}}}}}}}}}]},
+    {"id": "s-15", "x": 600, "y": 2000, "blocks": [{"type": "event_message", "fields": {"MSG": "hello"}, "inputs": {"DO": {"block": {"type": "sound_playuntil", "fields": {"SOUND": "Chime"},
+        "next": {"block": {"type": "myblock_call", "fields": {"BLOCK": "hop"}}}}}}}]},
+    {"id": "s-16", "x": 900, "y": 2000, "blocks": [{"type": "myblock_define", "fields": {"NAME": "hop"}, "inputs": {"DO": {"block": {"type": "motion_changex", "fields": {"DX": 10}}}}}]},
 ]
 
 failures = []
@@ -148,7 +156,7 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 12, f"twelve top-level scripts after load (got {len(saved)})")
+    check(len(saved) == 16, f"sixteen top-level scripts after load (got {len(saved)})")
     # Every script comes back with the same blocks (ids ignored) and the same position.
     for i, want in enumerate(SCRIPTS):
         got = saved[i] if i < len(saved) else {}
