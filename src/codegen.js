@@ -87,6 +87,8 @@ const GEN = {
   looks_nextcostume: () => 'await sprite.nextCostume();\n',
   looks_switchbackdrop: (b) => `await sprite.switchBackdrop(${JSON.stringify(b.fields?.BACKDROP ?? '')});\n`,
   looks_nextbackdrop: () => 'await sprite.nextBackdrop();\n',
+  motion_setrotation: (b) => `await sprite.setRotationStyle(${JSON.stringify(b.fields?.STYLE ?? 'all around')});\n`,
+  sensing_setdrag: (b) => `await sprite.setDraggable(${b.fields?.MODE === 'draggable'});\n`,
   control_repeat: (b) => `{\nconst n = Math.max(0, Math.floor(${value(b, 'TIMES')}));\nfor (let i = 0; i < n; i++) {\n${body(b, 'DO')}}\n}\n`,
   control_forever: (b) => `for (;;) {\nawait sprite.tick();\n${body(b, 'DO')}}\n`,
   control_if: (b) => `if (${condition(b, 'CONDITION')}) {\n${body(b, 'DO')}}\n`,

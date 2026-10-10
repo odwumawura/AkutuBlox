@@ -120,6 +120,11 @@ export function blocksProjectFromWorkspace(base, editor, starts, selectedId) {
       sprite.x = start.x;
       sprite.y = start.y;
       sprite.direction = start.dir;
+      sprite.visible = start.visible;
+      sprite.size = start.size;
+      sprite.currentCostume = start.costumeIndex;
+      sprite.rotationStyle = start.rotationStyle;
+      sprite.draggable = start.draggable;
     }
   }
   return project;
@@ -136,6 +141,8 @@ export function stageSpritesFromProject(project) {
     costume: s.costumes?.[s.currentCostume || 0]?.source || 'builtin:star',
     costumes: (s.costumes || []).map((c) => ({ name: c.name, source: c.source })),
     costumeIndex: s.currentCostume || 0,
+    rotationStyle: s.rotationStyle || 'all around',
+    draggable: s.draggable === true,
   }));
 }
 

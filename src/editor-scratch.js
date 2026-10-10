@@ -67,6 +67,18 @@ ScratchBlocks.defineBlocksWithJsonArray([
     args0: [{ type: 'field_dropdown', name: 'COSTUME', options: costumeOptions }],
     extensions: ['colours_looks', 'shape_statement'],
   },
+  {
+    type: 'motion_setrotation',
+    message0: 'set rotation style %1',
+    args0: [{ type: 'field_dropdown', name: 'STYLE', options: [['all around', 'all around'], ['left-right', 'left-right'], ["don't rotate", "don't rotate"]] }],
+    extensions: ['colours_motion', 'shape_statement'],
+  },
+  {
+    type: 'sensing_setdrag',
+    message0: 'set drag mode %1',
+    args0: [{ type: 'field_dropdown', name: 'MODE', options: [['draggable', 'draggable'], ['not draggable', 'not draggable']] }],
+    extensions: ['colours_sensing', 'shape_statement'],
+  },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -91,6 +103,7 @@ const sensingBlocks = () => `
     <block type="sensing_mousedown"/>
     <block type="sensing_touchingedge"/>
     <block type="sensing_touchingsprite"/>
+    <block type="sensing_setdrag"/>
 `;
 
 const flyoutFrom = (xml) => Array.from(new DOMParser().parseFromString(`<xml xmlns="http://www.w3.org/1999/xhtml">${xml}</xml>`, 'text/xml').documentElement.children);
@@ -109,6 +122,7 @@ export const TOOLBOX_XML = `
     <block type="motion_changeyby">${num('DY', 10)}</block>
     <block type="motion_sety">${num('Y', 0)}</block>
     <block type="motion_pointindirection">${num('DIRECTION', 90)}</block>
+    <block type="motion_setrotation"/>
   </category>
   <category name="Looks" id="looks" colour="#9966FF">${looksBlocks()}
   </category>
@@ -166,6 +180,8 @@ const MAP = [
   { old: 'looks_nextcostume', scratch: 'looks_nextcostume', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'looks_switchbackdrop', scratch: 'looks_switchbackdrop', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'BACKDROP' },
   { old: 'looks_nextbackdrop', scratch: 'looks_nextbackdrop', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'motion_setrotation', scratch: 'motion_setrotation', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'STYLE' },
+  { old: 'sensing_setdrag', scratch: 'sensing_setdrag', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'MODE' },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));

@@ -28,6 +28,7 @@ export function createStage(canvas, logEl) {
   // A sprite is drawn as a circle of this radius at size 100 (see draw()); touching uses the same circle.
   const RADIUS = 18;
   const reach = (s) => (RADIUS * s.size) / 100;
+  let drag = null; // { id, dx, dy } while a draggable sprite is held
   function touchingEdge(s) {
     const r = reach(s);
     return s.x + r > W / 2 || s.x - r < -W / 2 || s.y + r > H / 2 || s.y - r < -H / 2;
@@ -63,12 +64,43 @@ export function createStage(canvas, logEl) {
     const y = H / 2 - ((e.clientY - r.top) * H) / r.height;
     return { x: Math.max(-W / 2, Math.min(W / 2, x)), y: Math.max(-H / 2, Math.min(H / 2, y)) };
   }
-  canvas.addEventListener('pointermove', (e) => Object.assign(mouse, stagePoint(e)));
+  // The top-most visible sprite that is draggable and under the pointer.
+  function spriteAt(p) {
+    return [...sprites.values()].reverse().find((s) => s.visible && s.draggable && Math.hypot(p.x - s.x, p.y - s.y) <= reach(s));
+  }
+  function moveDragged(p) {
+    const s = sprites.get(drag.id);
+    if (!s) return;
+    const x = Math.max(-W / 2, Math.min(W / 2, p.x + drag.dx));
+    const y = Math.max(-H / 2, Math.min(H / 2, p.y + drag.dy));
+    sprites.set(drag.id, { ...s, x, y });
+    workers.get(drag.id)?.postMessage({ type: 'moved', x, y });
+    draw();
+  }
+  function endDrag() {
+    if (!drag) return;
+    const s = sprites.get(drag.id);
+    // Where a sprite is dropped becomes its starting place, so saving keeps it there.
+    if (s && starts.has(drag.id)) starts.set(drag.id, { ...starts.get(drag.id), x: s.x, y: s.y });
+    drag = null;
+  }
+  canvas.addEventListener('pointermove', (e) => {
+    const p = stagePoint(e);
+    Object.assign(mouse, p);
+    if (drag) moveDragged(p);
+  });
   canvas.addEventListener('pointerdown', (e) => {
-    Object.assign(mouse, stagePoint(e), { down: true });
+    const p = stagePoint(e);
+    Object.assign(mouse, p, { down: true });
+    const s = spriteAt(p);
+    if (s) {
+      drag = { id: s.id, dx: s.x - p.x, dy: s.y - p.y };
+      canvas.setPointerCapture(e.pointerId);
+    }
   });
   window.addEventListener('pointerup', () => {
     mouse.down = false;
+    endDrag();
   });
 
   const log = (msg) => {
@@ -85,7 +117,10 @@ export function createStage(canvas, logEl) {
       // Logical coordinates (origin at centre, y up) -> canvas pixels.
       ctx.save();
       ctx.translate(W / 2 + s.x, H / 2 - s.y);
-      ctx.rotate(((s.dir - 90) * Math.PI) / 180);
+      // Rotation style: all around turns with the direction; left-right only mirrors when facing left; don't rotate stays still.
+      const style = s.rotationStyle || 'all around';
+      if (style === 'all around') ctx.rotate(((s.dir - 90) * Math.PI) / 180);
+      else if (style === 'left-right' && Math.sin((s.dir * Math.PI) / 180) < 0) ctx.scale(-1, 1);
       ctx.scale(s.size / 100, s.size / 100);
       ctx.fillStyle = costumeColor(s.costume);
       ctx.strokeStyle = backdrop === 'builtin:night' ? '#ffffff' : '#1f2937';
@@ -111,7 +146,7 @@ export function createStage(canvas, logEl) {
       const msg = event.data;
       if (msg.type === 'state') {
         const s = sprites.get(id);
-        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size }, msg.state.costume));
+        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size, rotationStyle: msg.state.rotationStyle, draggable: msg.state.draggable }, msg.state.costume));
         draw();
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask') {
@@ -142,7 +177,7 @@ export function createStage(canvas, logEl) {
     stop();
     for (const [id, start] of starts) {
       const s = sprites.get(id);
-      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size }, start.costumeIndex));
+      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable }, start.costumeIndex));
     }
     showBackdrop(0);
     log('— green flag');
@@ -151,14 +186,14 @@ export function createStage(canvas, logEl) {
       if (!s) continue;
       const w = spawn(id);
       workers.set(id, w);
-      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costume: s.costumeIndex, costumes: (s.costumes || []).map((c) => c.name) } });
+      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costume: s.costumeIndex, costumes: (s.costumes || []).map((c) => c.name), rotationStyle: s.rotationStyle, draggable: s.draggable } });
     }
   }
 
   // list: [{ id, name, x, y, dir, costume }]. Sets where sprites start and draw.
   function setSprites(list) {
     sprites = new Map(list.map((s) => [s.id, atCostume({ ...s }, s.costumeIndex)]));
-    starts = new Map(list.map((s) => [s.id, { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costumeIndex: atCostume(s, s.costumeIndex).costumeIndex }]));
+    starts = new Map(list.map((s) => [s.id, { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costumeIndex: atCostume(s, s.costumeIndex).costumeIndex, rotationStyle: s.rotationStyle || 'all around', draggable: !!s.draggable }]));
     draw();
   }
 

@@ -239,6 +239,19 @@
           "items": {
             "$ref": "#/$defs/script"
           }
+        },
+        "rotationStyle": {
+          "type": "string",
+          "enum": [
+            "all around",
+            "left-right",
+            "don't rotate"
+          ],
+          "default": "all around"
+        },
+        "draggable": {
+          "type": "boolean",
+          "default": false
         }
       }
     },

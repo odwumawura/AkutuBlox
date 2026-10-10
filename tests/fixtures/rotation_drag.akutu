@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "blocks",
+  "meta": {
+    "name": "Rotation and drag fixture",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "blocks": {
+    "stage": {
+      "logicalWidth": 480,
+      "logicalHeight": 360,
+      "displayPreset": "480x360",
+      "backdrops": [
+        {
+          "id": "bg-meadow",
+          "name": "Meadow",
+          "type": "vector",
+          "source": "builtin:meadow"
+        }
+      ],
+      "variables": []
+    },
+    "sprites": [
+      {
+        "id": "cat",
+        "name": "Cat",
+        "x": 0,
+        "y": 0,
+        "direction": 90,
+        "size": 100,
+        "visible": true,
+        "costumes": [
+          {
+            "id": "cat-a",
+            "name": "Cat",
+            "type": "vector",
+            "source": "builtin:cat",
+            "rotationCenterX": 50,
+            "rotationCenterY": 50
+          },
+          {
+            "id": "cat-b",
+            "name": "Dog",
+            "type": "vector",
+            "source": "builtin:dog",
+            "rotationCenterX": 50,
+            "rotationCenterY": 50
+          }
+        ],
+        "currentCostume": 0,
+        "scripts": []
+      }
+    ]
+  }
+}

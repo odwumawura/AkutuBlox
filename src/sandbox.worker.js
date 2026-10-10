@@ -2,7 +2,9 @@
 // The only way to affect the stage is to post state to the main thread and wait for it to draw.
 // Stop = terminate this worker, so even a runaway loop can be stopped.
 
-let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [] };
+const ROTATION_STYLES = ['all around', 'left-right', "don't rotate"];
+
+let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false };
 let handlers = [];
 const waiters = []; // FIFO: each posted state waits for one 'continue'
 let askSeq = 0;
@@ -108,6 +110,16 @@ const api = {
     post({ type: 'backdrop', op: 'next' });
     await api.tick();
   },
+  // Rotation style and drag mode. Only the mode changes here; position comes from the stage.
+  async setRotationStyle(style) {
+    const s = String(style);
+    if (ROTATION_STYLES.includes(s)) state.rotationStyle = s;
+    await publish();
+  },
+  async setDraggable(on) {
+    state.draggable = on === true;
+    await publish();
+  },
   async point(dir) {
     state.dir = ((Number(dir) % 360) + 360) % 360;
     await publish();
@@ -168,6 +180,12 @@ self.onmessage = (event) => {
       answers.delete(msg.id);
       resolve(msg.value);
     }
+    return;
+  }
+  if (msg.type === 'moved') {
+    // The stage moved this sprite by dragging it; keep the sprite's own state in step.
+    state.x = msg.x;
+    state.y = msg.y;
     return;
   }
   if (msg.type === 'run') {
