@@ -57,6 +57,9 @@ SCRIPTS = [
     {"id": "s-7", "x": 600, "y": 600, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {
         "type": "data_setvariableto", "fields": {"VARIABLE": "score"}, "inputs": {"VALUE": {"block": {"type": "math_number", "fields": {"NUM": 4}}}},
         "next": {"block": {"type": "data_changevariableby", "fields": {"VARIABLE": "score"}, "inputs": {"VALUE": {"block": {"type": "data_variable", "fields": {"VARIABLE": "score"}}}}}}}}}}]},
+    {"id": "s-8", "x": 600, "y": 700, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {
+        "type": "control_wait_until", "inputs": {"CONDITION": {"block": {"type": "sensing_mousedown"}}},
+        "next": {"block": {"type": "motion_goto", "inputs": {"X": {"block": {"type": "sensing_mousex"}}, "Y": {"block": {"type": "sensing_mousey"}}}}}}}}}]},
 ]
 
 failures = []
@@ -81,7 +84,7 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 7, f"seven top-level scripts after load (got {len(saved)})")
+    check(len(saved) == 8, f"eight top-level scripts after load (got {len(saved)})")
     check(saved and strip_ids(saved[0]["blocks"]) == SCRIPTS[0]["blocks"], "nested script 1 round-trips unchanged")
     check(len(saved) > 1 and strip_ids(saved[1]["blocks"]) == SCRIPTS[1]["blocks"], "script 2 round-trips unchanged")
     check(all(s["x"] == o["x"] and s["y"] == o["y"] for s, o in zip(saved, SCRIPTS)), "script positions round-trip")

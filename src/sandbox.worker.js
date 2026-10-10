@@ -5,8 +5,17 @@
 let state = { x: 0, y: 0, dir: 90, visible: true, size: 100 };
 let handlers = [];
 const waiters = []; // FIFO: each posted state waits for one 'continue'
-let varSeq = 0;
-const varWaiters = new Map(); // variable reads waiting for the main thread's answer
+let askSeq = 0;
+const answers = new Map(); // requests waiting for the main thread's answer
+
+// Asks the main thread (variables, mouse) and waits for the answer.
+function ask(request) {
+  const id = ++askSeq;
+  return new Promise((resolve) => {
+    answers.set(id, resolve);
+    post({ type: 'ask', id, ...request });
+  });
+}
 
 const W = 480;
 const H = 360;
@@ -90,11 +99,17 @@ const api = {
   },
   // Variables are shared by all sprites and live on the main thread.
   getVar(name) {
-    const id = ++varSeq;
-    return new Promise((resolve) => {
-      varWaiters.set(id, resolve);
-      post({ type: 'getVar', id, name: String(name) });
-    });
+    return ask({ what: 'var', name: String(name) });
+  },
+  // Sensing: where the mouse is on the stage (origin at centre, y up), and whether it is pressed.
+  mouseX() {
+    return ask({ what: 'mouseX' });
+  },
+  mouseY() {
+    return ask({ what: 'mouseY' });
+  },
+  mouseDown() {
+    return ask({ what: 'mouseDown' });
   },
   setVar(name, value) {
     post({ type: 'setVar', name: String(name), value });
@@ -121,10 +136,10 @@ self.onmessage = (event) => {
     if (next) next();
     return;
   }
-  if (msg.type === 'varValue') {
-    const resolve = varWaiters.get(msg.id);
+  if (msg.type === 'answer') {
+    const resolve = answers.get(msg.id);
     if (resolve) {
-      varWaiters.delete(msg.id);
+      answers.delete(msg.id);
       resolve(msg.value);
     }
     return;

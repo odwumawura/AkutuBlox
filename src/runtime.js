@@ -13,6 +13,32 @@ export function createStage(canvas, logEl) {
   let workers = new Map();
   let starts = new Map();
   let variables = new Map(); // name -> value, shared by all sprites
+  const mouse = { x: 0, y: 0, down: false }; // stage coordinates, origin at centre, y up
+
+  function answerFor(msg) {
+    switch (msg.what) {
+      case 'var': return variables.get(msg.name) ?? 0;
+      case 'mouseX': return mouse.x;
+      case 'mouseY': return mouse.y;
+      case 'mouseDown': return mouse.down;
+      default: return undefined;
+    }
+  }
+
+  // Stage pixels -> stage coordinates. The canvas may be scaled by CSS, so measure it.
+  function stagePoint(e) {
+    const r = canvas.getBoundingClientRect();
+    const x = ((e.clientX - r.left) * W) / r.width - W / 2;
+    const y = H / 2 - ((e.clientY - r.top) * H) / r.height;
+    return { x: Math.max(-W / 2, Math.min(W / 2, x)), y: Math.max(-H / 2, Math.min(H / 2, y)) };
+  }
+  canvas.addEventListener('pointermove', (e) => Object.assign(mouse, stagePoint(e)));
+  canvas.addEventListener('pointerdown', (e) => {
+    Object.assign(mouse, stagePoint(e), { down: true });
+  });
+  window.addEventListener('pointerup', () => {
+    mouse.down = false;
+  });
 
   const log = (msg) => {
     logEl.textContent += msg + '\n';
@@ -57,8 +83,8 @@ export function createStage(canvas, logEl) {
         if (s) sprites.set(id, { ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size });
         draw();
         w.postMessage({ type: 'continue' });
-      } else if (msg.type === 'getVar') {
-        w.postMessage({ type: 'varValue', id: msg.id, value: variables.get(msg.name) ?? 0 });
+      } else if (msg.type === 'ask') {
+        w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg) });
       } else if (msg.type === 'setVar') {
         variables.set(msg.name, msg.value);
       } else if (msg.type === 'error') {

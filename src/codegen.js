@@ -50,6 +50,9 @@ const bool = (e, name) => {
 
 // Reporters (expressions). Each returns a JS expression.
 const EXPR = {
+  sensing_mousex: () => '(await sprite.mouseX())',
+  sensing_mousey: () => '(await sprite.mouseY())',
+  sensing_mousedown: () => '(await sprite.mouseDown())',
   data_variable: (e) => `(await sprite.getVar(${JSON.stringify(e.fields?.VARIABLE ?? '')}))`,
   operator_add: (e) => `(${operand(e, 'NUM1')} + ${operand(e, 'NUM2')})`,
   operator_subtract: (e) => `(${operand(e, 'NUM1')} - ${operand(e, 'NUM2')})`,

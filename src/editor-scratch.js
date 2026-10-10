@@ -59,6 +59,11 @@ export const TOOLBOX_XML = `
     <block type="control_repeat">${num('TIMES', 10)}</block>
     <block type="control_wait">${num('DURATION', 1)}</block>
   </category>
+  <category name="Sensing" id="sensing" colour="#5CB1D6">
+    <block type="sensing_mousex"/>
+    <block type="sensing_mousey"/>
+    <block type="sensing_mousedown"/>
+  </category>
   <category name="Variables" id="variables" colour="#FF8C1A" custom="VARIABLE"/>
   <category name="Operators" id="operators" colour="#59C059">
     <block type="operator_add">${num('NUM1', 0)}${num('NUM2', 0)}</block>
@@ -106,6 +111,9 @@ const byScratch = Object.fromEntries(MAP.map((m) => [m.scratch, m]));
 
 // Reporters: same name on both sides. Operands are numbers, or booleans for and/or/not.
 const REPORTERS = {
+  sensing_mousex: [],
+  sensing_mousey: [],
+  sensing_mousedown: [],
   operator_add: ['NUM1', 'NUM2'],
   operator_subtract: ['NUM1', 'NUM2'],
   operator_multiply: ['NUM1', 'NUM2'],
