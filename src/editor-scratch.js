@@ -187,6 +187,14 @@ ScratchBlocks.defineBlocksWithJsonArray([
   { type: 'move2_x', message0: 'x position', extensions: ['colours_motion', 'output_number'] },
   { type: 'move2_y', message0: 'y position', extensions: ['colours_motion', 'output_number'] },
   { type: 'move2_dir', message0: 'direction', extensions: ['colours_motion', 'output_number'] },
+  {
+    type: 'event_broadcastwait',
+    message0: 'broadcast %1 and wait',
+    args0: [{ type: 'field_input', name: 'MSG', text: 'message1' }],
+    extensions: ['colours_event', 'shape_statement'],
+  },
+  { type: 'stop_this_script', message0: 'stop this script', extensions: ['colours_control', 'shape_statement'] },
+  { type: 'stop_all_scripts', message0: 'stop all', extensions: ['colours_control', 'shape_statement'] },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -230,6 +238,7 @@ export const TOOLBOX_XML = `
     <block type="event_click"/>
     <block type="event_message"/>
     <block type="event_broadcast"/>
+    <block type="event_broadcastwait"/>
   </category>
   <category name="Motion" id="motion" colour="#4C97FF">
     <block type="motion_movesteps">${num('STEPS', 10)}</block>
@@ -269,6 +278,8 @@ export const TOOLBOX_XML = `
     <block type="control_wait_until"/>
     <block type="control_repeat">${num('TIMES', 10)}</block>
     <block type="control_wait">${num('DURATION', 1)}</block>
+    <block type="stop_this_script"/>
+    <block type="stop_all_scripts"/>
   </category>
   <category name="Sensing" id="sensing" colour="#5CB1D6">${sensingBlocks()}
   </category>
@@ -345,6 +356,9 @@ const MAP = [
   { old: 'move2_x', scratch: 'move2_x', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'move2_y', scratch: 'move2_y', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'move2_dir', scratch: 'move2_dir', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'event_broadcastwait', scratch: 'event_broadcastwait', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'MSG' },
+  { old: 'stop_this_script', scratch: 'stop_this_script', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'stop_all_scripts', scratch: 'stop_all_scripts', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));

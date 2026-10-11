@@ -120,7 +120,7 @@ with sync_playwright() as p:
     pg.evaluate("() => document.activeElement && document.activeElement.blur()")
     pg.keyboard.press("Space")
     pg.wait_for_timeout(400)
-    check(abs(sprite(pg, "Cat")["x"] - before) < 0.5, "after Stop, space does nothing")
+    check(abs(sprite(pg, "Cat")["x"] - before - 10) < 0.5, "after Stop, space still runs Cat's script (events work without a green flag)")
 
     check(not errs, f"no page errors ({errs[:3]})")
     b.close()

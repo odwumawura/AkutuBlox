@@ -23,6 +23,10 @@ export function createStage(canvas, logEl) {
   let backdrop = 'builtin:meadow';
   let workers = new Map();
   const images = new Map(); // asset path -> Image, for uploaded costumes and backdrops
+  let programs = []; // [{ id, code }] for every sprite; runs idle (events only) when the project is not running
+  let running = false;
+  let waits = new Map(); // broadcast-and-wait tokens -> { left, resolve }
+  let waitSeq = 0;
   let timerStart = performance.now(); // the timer counts from the green flag, or from the last reset
   const sound = createSoundPlayer();
   let starts = new Map();
@@ -192,6 +196,16 @@ export function createStage(canvas, logEl) {
         sound.play(msg.name, msg.volume, msg.wait).then(() => w.postMessage({ type: 'answer', id: msg.id, value: null }));
       } else if (msg.type === 'sound') {
         sound.stopAll();
+      } else if (msg.type === 'ask' && msg.what === 'broadcastWait') {
+        deliverWait(msg.name).then(() => w.postMessage({ type: 'answer', id: msg.id, value: null }));
+      } else if (msg.type === 'eventDone') {
+        const wt = waits.get(msg.token);
+        if (wt && --wt.left === 0) {
+          waits.delete(msg.token);
+          wt.resolve();
+        }
+      } else if (msg.type === 'stopAll') {
+        stop();
       } else if (msg.type === 'ask') {
         w.postMessage({ type: 'answer', id: msg.id, value: answerFor(msg, id) });
       } else if (msg.type === 'ready') {
@@ -219,22 +233,68 @@ export function createStage(canvas, logEl) {
     return w;
   }
 
-  function stop() {
+  // Ends every script and clears what they left on the stage. Waiting broadcasts are released.
+  function stopWorkers() {
     pendingReady = null;
     sound.stopAll();
-    // Stop clears speech bubbles, as in Scratch.
     for (const [id, s] of sprites) if (s.bubble) sprites.set(id, { ...s, bubble: null });
+    for (const w of workers.values()) w.terminate();
+    workers = new Map();
+    for (const wt of waits.values()) wt.resolve();
+    waits = new Map();
     draw();
-    if (workers.size) {
-      for (const w of workers.values()) w.terminate();
-      workers = new Map();
-      log('— stopped');
+  }
+
+  // Each sprite's program starts from where the sprite is now, but only its event hats are live.
+  function spawnFor(run) {
+    const s = sprites.get(run.id);
+    if (!s) return null;
+    const w = spawn(run.id);
+    workers.set(run.id, w);
+    w.postMessage({ type: 'run', code: run.code, state: runState(s) });
+    return w;
+  }
+
+  function runState(s) {
+    return { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costume: s.costumeIndex, costumes: (s.costumes || []).map((c) => c.name), rotationStyle: s.rotationStyle, draggable: s.draggable };
+  }
+
+  // Not running: each sprite's event scripts still listen (key, click, message), as in Scratch.
+  function startIdle() {
+    for (const run of programs) spawnFor(run);
+  }
+
+  // Scripts changed in the editor: rebuild the idle listeners (a running project is left alone).
+  function setPrograms(runs) {
+    programs = runs;
+    if (!running) {
+      stopWorkers();
+      startIdle();
     }
+  }
+
+  function stop() {
+    const wasRunning = running || workers.size > 0;
+    running = false;
+    stopWorkers();
+    startIdle();
+    if (wasRunning) log('— stopped');
+  }
+
+  function deliverWait(name) {
+    return new Promise((resolve) => {
+      if (workers.size === 0) return resolve();
+      const token = ++waitSeq;
+      waits.set(token, { left: workers.size, resolve });
+      for (const w of workers.values()) w.postMessage({ type: 'event', kind: 'message', name, token });
+    });
   }
 
   // runs: [{ id, code }]. Every sprite goes back to its starting place before the run.
   function greenFlag(runs) {
-    stop();
+    stopWorkers();
+    running = true;
+    programs = runs;
     for (const [id, start] of starts) {
       const s = sprites.get(id);
       if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable, bubble: null }, start.costumeIndex));
@@ -364,5 +424,5 @@ export function createStage(canvas, logEl) {
     return [...starts].map(([id, p]) => ({ id, ...p }));
   }
 
-  return { greenFlag, stop, setAssets, getSoundLog: () => sound.log(), setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
+  return { greenFlag, stop, setPrograms, setAssets, getSoundLog: () => sound.log(), setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
 }

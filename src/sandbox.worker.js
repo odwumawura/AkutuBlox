@@ -9,6 +9,8 @@ let handlers = []; // green-flag scripts
 let eventHandlers = []; // key, click and message scripts: { kind, key | name, fn }
 let customBlocks = new Map(); // My Blocks defined by this sprite: name -> body
 const waiters = []; // FIFO: each posted state waits for one 'continue'
+// Thrown by 'stop this script' and 'stop all'. Ends the running script without an error message.
+const STOP = Symbol('stop script');
 let bubbleSeq = 0; // counts bubbles, so a timed bubble knows whether it was replaced
 
 // Sets the bubble text (empty clears it). Returns the bubble's number.
@@ -274,6 +276,18 @@ const api = {
     post({ type: 'timer', op: 'reset' });
     await api.tick();
   },
+  // Stop: 'this script' ends only the current script; 'all' asks the main thread to stop every sprite.
+  stopThisScript() {
+    throw STOP;
+  },
+  stopAll() {
+    post({ type: 'stopAll' });
+    throw STOP;
+  },
+  // Broadcast and wait: resumes once every running script that receives the message has finished.
+  broadcastAndWait(name) {
+    return ask({ what: 'broadcastWait', name: String(name) });
+  },
   // Speech bubbles: say and think, until the next one or cleared. Text '' clears. "For N seconds" clears
   // only if no newer bubble has replaced it. The bubble is runtime state, not saved in the file.
   async say(text) {
@@ -318,7 +332,9 @@ const api = {
 
 function runHandlers() {
   for (const fn of handlers) {
-    fn().catch((err) => post({ type: 'error', message: err.message }));
+    fn().catch((err) => {
+      if (err !== STOP) post({ type: 'error', message: err.message });
+    });
   }
 }
 
@@ -343,10 +359,13 @@ self.onmessage = (event) => {
     return;
   }
   if (msg.type === 'event') {
-    for (const h of eventHandlers) {
-      const hit = h.kind === msg.kind && (h.kind === 'click' || (h.kind === 'key' ? h.key === 'any' || h.key === msg.key : h.name === msg.name));
-      if (hit) h.fn().catch((err) => post({ type: 'error', message: err.message }));
-    }
+    const hits = eventHandlers.filter((h) => h.kind === msg.kind && (h.kind === 'click' || (h.kind === 'key' ? h.key === 'any' || h.key === msg.key : h.name === msg.name)));
+    // A broadcast-and-wait carries a token: reply once every hit script has finished (or stopped).
+    Promise.all(hits.map((h) => h.fn().catch((err) => {
+      if (err !== STOP) post({ type: 'error', message: err.message });
+    }))).then(() => {
+      if (msg.token !== undefined) post({ type: 'eventDone', token: msg.token });
+    });
     return;
   }
   if (msg.type === 'moved') {

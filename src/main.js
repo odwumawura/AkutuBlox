@@ -46,10 +46,13 @@ const el = {
   pageSelect: document.getElementById('page-select'),
 };
 
+let programsTimer = null;
+
 function markDirty() {
   if (state.loading) return;
   state.dirty = true;
   el.dirty.hidden = false;
+  schedulePrograms();
 }
 function markClean() {
   state.dirty = false;
@@ -102,6 +105,7 @@ function syncAssets() {
 
 function refreshStage() {
   syncAssets();
+  schedulePrograms();
   setSpriteNames(state.project.blocks.sprites.map((s) => s.name));
   syncCostumeNames();
   stage.setSprites(stageSpritesFromProject(state.project));
@@ -246,10 +250,21 @@ document.getElementById('add-sprite').addEventListener('click', addSprite);
 document.getElementById('backdrop-select').addEventListener('change', (e) => chooseBackdrop(e.target.value));
 document.getElementById('new-costume').replaceChildren(...Object.entries(COSTUMES).map(([key, c]) => new Option(c.label, key)));
 
-document.getElementById('run').addEventListener('click', () => {
+// Every sprite's code, from the saved scripts (the sprite being edited is saved first).
+function buildRuns() {
   saveSelectedSprite();
-  const runs = state.project.blocks.sprites.map((s) => ({ id: s.id, code: codeForSprite(s) }));
-  stage.greenFlag(runs);
+  return state.project.blocks.sprites.map((s) => ({ id: s.id, code: codeForSprite(s) }));
+}
+
+// After an edit, the idle listeners (for key, click and message scripts when not running) are rebuilt.
+function schedulePrograms() {
+  if (!state.project || state.project.mode !== 'blocks') return;
+  clearTimeout(programsTimer);
+  programsTimer = setTimeout(() => stage.setPrograms(buildRuns()), 250);
+}
+
+document.getElementById('run').addEventListener('click', () => {
+  stage.greenFlag(buildRuns());
 });
 document.getElementById('stop').addEventListener('click', () => stage.stop());
 
@@ -555,4 +570,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => blocksEditor.quiet(() => blocksEditor.setScripts(scripts)) };
+window.__akutu = { sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => { blocksEditor.quiet(() => blocksEditor.setScripts(scripts)); schedulePrograms(); } };
