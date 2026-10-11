@@ -199,6 +199,64 @@ const api = {
     state.volume = Math.max(0, Math.min(100, state.volume + (Number(d) || 0)));
     await api.tick();
   },
+  // Motion (beginner set). Go to a sprite by name (an unknown name does nothing).
+  async goToSprite(name) {
+    const at = await ask({ what: 'spritePos', name: String(name) });
+    if (!at) return;
+    state.x = clampX(at.x);
+    state.y = clampY(at.y);
+    await publish();
+  },
+  async goToRandom() {
+    state.x = Math.floor(Math.random() * (W + 1)) - W / 2;
+    state.y = Math.floor(Math.random() * (H + 1)) - H / 2;
+    await publish();
+  },
+  // Glide: moves in a straight line over the given seconds, one frame at a time (30 frames a second).
+  async glideTo(secs, x, y) {
+    const sx = state.x;
+    const sy = state.y;
+    const tx = clampX(Number(x));
+    const ty = clampY(Number(y));
+    const steps = Math.max(1, Math.round((Number(secs) || 0) * 30));
+    for (let i = 1; i <= steps; i++) {
+      state.x = sx + ((tx - sx) * i) / steps;
+      state.y = sy + ((ty - sy) * i) / steps;
+      await publish();
+      if (i < steps) await new Promise((r) => setTimeout(r, 1000 / 30));
+    }
+  },
+  // Bounce: if the sprite touches the stage edge, turn it back the way it came and keep it on stage.
+  async bounceOnEdge() {
+    const r = (18 * state.size) / 100;
+    const rad = (state.dir * Math.PI) / 180;
+    const pastSide = (state.x + r > W / 2 && Math.sin(rad) > 0) || (state.x - r < -W / 2 && Math.sin(rad) < 0);
+    const pastTopBottom = (state.y + r > H / 2 && Math.cos(rad) > 0) || (state.y - r < -H / 2 && Math.cos(rad) < 0);
+    if (!pastSide && !pastTopBottom) return;
+    if (pastSide) state.dir = (360 - state.dir + 360) % 360;
+    if (pastTopBottom) state.dir = (180 - state.dir + 360) % 360;
+    state.x = Math.max(-W / 2 + r, Math.min(W / 2 - r, state.x));
+    state.y = Math.max(-H / 2 + r, Math.min(H / 2 - r, state.y));
+    await publish();
+  },
+  // Point towards a sprite: 90 is right, 0 is up, as in Scratch.
+  async pointTowards(name) {
+    const at = await ask({ what: 'spritePos', name: String(name) });
+    if (!at || (at.x === state.x && at.y === state.y)) return;
+    const deg = (Math.atan2(at.x - state.x, at.y - state.y) * 180) / Math.PI;
+    state.dir = (deg + 360) % 360;
+    await publish();
+  },
+  // Position and direction reporters.
+  xPosition() {
+    return state.x;
+  },
+  yPosition() {
+    return state.y;
+  },
+  direction() {
+    return state.dir;
+  },
   // Random number: whole numbers when both ends are whole, otherwise a decimal (both ends included for whole numbers).
   async pickRandom(from, to) {
     const a = Number(from);

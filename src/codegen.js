@@ -54,6 +54,9 @@ const EXPR = {
   sensing_touchingsprite: (e) => `(await sprite.touching(${JSON.stringify(e.fields?.SPRITE ?? '')}))`,
   sensing_mousex: () => '(await sprite.mouseX())',
   timer_value: () => '(await sprite.timer())',
+  move2_x: () => '(await sprite.xPosition())',
+  move2_y: () => '(await sprite.yPosition())',
+  move2_dir: () => '(await sprite.direction())',
   random_pick: (e) => `(await sprite.pickRandom(${operand(e, 'FROM')}, ${operand(e, 'TO')}))`,
   sensing_mousey: () => '(await sprite.mouseY())',
   sensing_mousedown: () => '(await sprite.mouseDown())',
@@ -113,6 +116,11 @@ const GEN = {
   speech_think: (b) => `await sprite.think(${literalOrReporter(b, 'TEXT')});\n`,
   speech_thinkfor: (b) => `await sprite.thinkFor(${literalOrReporter(b, 'TEXT')}, ${value(b, 'SECS')});\n`,
   timer_reset: () => 'await sprite.resetTimer();\n',
+  move2_gotosprite: (b) => `await sprite.goToSprite(${JSON.stringify(b.fields?.SPRITE ?? '')});\n`,
+  move2_random: () => 'await sprite.goToRandom();\n',
+  move2_glide: (b) => `await sprite.glideTo(${value(b, 'SECS')}, ${value(b, 'X')}, ${value(b, 'Y')});\n`,
+  move2_bounce: () => 'await sprite.bounceOnEdge();\n',
+  move2_pointtowards: (b) => `await sprite.pointTowards(${JSON.stringify(b.fields?.SPRITE ?? '')});\n`,
   control_wait: (b) => `await sprite.wait(${value(b, 'SECONDS')});\n`,
 };
 

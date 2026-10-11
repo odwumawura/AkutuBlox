@@ -51,6 +51,10 @@ export function createStage(canvas, logEl) {
       case 'mouseY': return mouse.y;
       case 'mouseDown': return mouse.down;
       case 'timer': return (performance.now() - timerStart) / 1000;
+      case 'spritePos': {
+        const other = [...sprites.values()].find((o) => o.name === msg.name);
+        return other ? { x: other.x, y: other.y } : null;
+      }
       case 'touchingEdge': {
         const me = sprites.get(id);
         return !!me && me.visible && touchingEdge(me);

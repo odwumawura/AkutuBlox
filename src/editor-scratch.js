@@ -174,6 +174,19 @@ ScratchBlocks.defineBlocksWithJsonArray([
     args0: [{ type: 'input_value', name: 'FROM', check: 'Number' }, { type: 'input_value', name: 'TO', check: 'Number' }],
     extensions: ['colours_operators', 'output_number'],
   },
+  { type: 'move2_gotosprite', message0: 'go to %1', args0: [{ type: 'field_dropdown', name: 'SPRITE', options: spriteOptions }], extensions: ['colours_motion', 'shape_statement'] },
+  { type: 'move2_random', message0: 'go to random position', extensions: ['colours_motion', 'shape_statement'] },
+  {
+    type: 'move2_glide',
+    message0: 'glide %1 secs to x: %2 y: %3',
+    args0: [{ type: 'input_value', name: 'SECS', check: 'Number' }, { type: 'input_value', name: 'X', check: 'Number' }, { type: 'input_value', name: 'Y', check: 'Number' }],
+    extensions: ['colours_motion', 'shape_statement'],
+  },
+  { type: 'move2_bounce', message0: 'if on edge, bounce', extensions: ['colours_motion', 'shape_statement'] },
+  { type: 'move2_pointtowards', message0: 'point towards %1', args0: [{ type: 'field_dropdown', name: 'SPRITE', options: spriteOptions }], extensions: ['colours_motion', 'shape_statement'] },
+  { type: 'move2_x', message0: 'x position', extensions: ['colours_motion', 'output_number'] },
+  { type: 'move2_y', message0: 'y position', extensions: ['colours_motion', 'output_number'] },
+  { type: 'move2_dir', message0: 'direction', extensions: ['colours_motion', 'output_number'] },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -228,6 +241,14 @@ export const TOOLBOX_XML = `
     <block type="motion_sety">${num('Y', 0)}</block>
     <block type="motion_pointindirection">${num('DIRECTION', 90)}</block>
     <block type="motion_setrotation"/>
+    <block type="move2_gotosprite"/>
+    <block type="move2_random"/>
+    <block type="move2_glide">${num('SECS', 1)}${num('X', 0)}${num('Y', 0)}</block>
+    <block type="move2_bounce"/>
+    <block type="move2_pointtowards"/>
+    <block type="move2_x"/>
+    <block type="move2_y"/>
+    <block type="move2_dir"/>
   </category>
   <category name="Looks" id="looks" colour="#9966FF">${looksBlocks()}
   </category>
@@ -316,6 +337,14 @@ const MAP = [
   { old: 'speech_thinkfor', scratch: 'speech_thinkfor', numberInputs: { TEXT: 'TEXT', SECS: 'SECS' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
   { old: 'timer_value', scratch: 'timer_value', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'timer_reset', scratch: 'timer_reset', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'move2_gotosprite', scratch: 'move2_gotosprite', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'SPRITE' },
+  { old: 'move2_random', scratch: 'move2_random', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'move2_glide', scratch: 'move2_glide', numberInputs: { SECS: 'SECS', X: 'X', Y: 'Y' }, statements: {}, boolInputs: {} },
+  { old: 'move2_bounce', scratch: 'move2_bounce', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'move2_pointtowards', scratch: 'move2_pointtowards', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'SPRITE' },
+  { old: 'move2_x', scratch: 'move2_x', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'move2_y', scratch: 'move2_y', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'move2_dir', scratch: 'move2_dir', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
@@ -329,6 +358,9 @@ const REPORTERS = {
   sensing_mousedown: [],
   operator_add: ['NUM1', 'NUM2'],
   random_pick: ['FROM', 'TO'],
+  move2_x: [],
+  move2_y: [],
+  move2_dir: [],
   timer_value: [],
   operator_subtract: ['NUM1', 'NUM2'],
   operator_multiply: ['NUM1', 'NUM2'],
