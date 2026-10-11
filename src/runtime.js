@@ -23,6 +23,7 @@ export function createStage(canvas, logEl) {
   let backdrop = 'builtin:meadow';
   let workers = new Map();
   const images = new Map(); // asset path -> Image, for uploaded costumes and backdrops
+  let timerStart = performance.now(); // the timer counts from the green flag, or from the last reset
   const sound = createSoundPlayer();
   let starts = new Map();
   let variables = new Map(); // name -> value, shared by all sprites
@@ -49,6 +50,7 @@ export function createStage(canvas, logEl) {
       case 'mouseX': return mouse.x;
       case 'mouseY': return mouse.y;
       case 'mouseDown': return mouse.down;
+      case 'timer': return (performance.now() - timerStart) / 1000;
       case 'touchingEdge': {
         const me = sprites.get(id);
         return !!me && me.visible && touchingEdge(me);
@@ -201,6 +203,8 @@ export function createStage(canvas, logEl) {
       } else if (msg.type === 'backdrop') {
         if (msg.op === 'switch') switchBackdrop(msg.name);
         else nextBackdrop();
+      } else if (msg.type === 'timer') {
+        timerStart = performance.now();
       } else if (msg.type === 'setVar') {
         variables.set(msg.name, msg.value);
       } else if (msg.type === 'error') {
@@ -232,6 +236,7 @@ export function createStage(canvas, logEl) {
       if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable, bubble: null }, start.costumeIndex));
     }
     showBackdrop(0);
+    timerStart = performance.now();
     log('— green flag');
     pendingReady = new Set(runs.filter(({ id }) => sprites.has(id)).map(({ id }) => id));
     for (const { id, code } of runs) {

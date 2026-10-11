@@ -166,6 +166,14 @@ ScratchBlocks.defineBlocksWithJsonArray([
     args0: [{ type: 'input_value', name: 'TEXT' }, { type: 'input_value', name: 'SECS', check: 'Number' }],
     extensions: ['colours_looks', 'shape_statement'],
   },
+  { type: 'timer_value', message0: 'timer', extensions: ['colours_sensing', 'output_number'] },
+  { type: 'timer_reset', message0: 'reset timer', extensions: ['colours_sensing', 'shape_statement'] },
+  {
+    type: 'random_pick',
+    message0: 'pick random %1 to %2',
+    args0: [{ type: 'input_value', name: 'FROM', check: 'Number' }, { type: 'input_value', name: 'TO', check: 'Number' }],
+    extensions: ['colours_operators', 'output_number'],
+  },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -190,6 +198,8 @@ const looksBlocks = () => `
 `;
 const sensingBlocks = () => `
     <block type="sensing_mousex"/>
+    <block type="timer_value"/>
+    <block type="timer_reset"/>
     <block type="sensing_mousey"/>
     <block type="sensing_mousedown"/>
     <block type="sensing_touchingedge"/>
@@ -243,6 +253,7 @@ export const TOOLBOX_XML = `
   </category>
   <category name="Variables" id="variables" colour="#FF8C1A" custom="VARIABLE"/>
   <category name="Operators" id="operators" colour="#59C059">
+    <block type="random_pick">${num('FROM', 1)}${num('TO', 10)}</block>
     <block type="operator_add">${num('NUM1', 0)}${num('NUM2', 0)}</block>
     <block type="operator_subtract">${num('NUM1', 0)}${num('NUM2', 0)}</block>
     <block type="operator_multiply">${num('NUM1', 0)}${num('NUM2', 0)}</block>
@@ -303,6 +314,8 @@ const MAP = [
   { old: 'speech_sayfor', scratch: 'speech_sayfor', numberInputs: { TEXT: 'TEXT', SECS: 'SECS' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
   { old: 'speech_think', scratch: 'speech_think', numberInputs: { TEXT: 'TEXT' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
   { old: 'speech_thinkfor', scratch: 'speech_thinkfor', numberInputs: { TEXT: 'TEXT', SECS: 'SECS' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
+  { old: 'timer_value', scratch: 'timer_value', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'timer_reset', scratch: 'timer_reset', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
@@ -315,6 +328,8 @@ const REPORTERS = {
   sensing_mousey: [],
   sensing_mousedown: [],
   operator_add: ['NUM1', 'NUM2'],
+  random_pick: ['FROM', 'TO'],
+  timer_value: [],
   operator_subtract: ['NUM1', 'NUM2'],
   operator_multiply: ['NUM1', 'NUM2'],
   operator_divide: ['NUM1', 'NUM2'],

@@ -199,6 +199,23 @@ const api = {
     state.volume = Math.max(0, Math.min(100, state.volume + (Number(d) || 0)));
     await api.tick();
   },
+  // Random number: whole numbers when both ends are whole, otherwise a decimal (both ends included for whole numbers).
+  async pickRandom(from, to) {
+    const a = Number(from);
+    const b = Number(to);
+    const low = Math.min(a, b);
+    const high = Math.max(a, b);
+    if (Number.isInteger(a) && Number.isInteger(b)) return Math.floor(Math.random() * (high - low + 1)) + low;
+    return low + Math.random() * (high - low);
+  },
+  // Timer: seconds since the green flag (or since timer reset). Stop does not reset it.
+  timer() {
+    return ask({ what: 'timer' });
+  },
+  async resetTimer() {
+    post({ type: 'timer', op: 'reset' });
+    await api.tick();
+  },
   // Speech bubbles: say and think, until the next one or cleared. Text '' clears. "For N seconds" clears
   // only if no newer bubble has replaced it. The bubble is runtime state, not saved in the file.
   async say(text) {

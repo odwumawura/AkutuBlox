@@ -98,6 +98,7 @@ SCRIPTS = [
         "next": {"block": {"type": "myblock_call", "fields": {"BLOCK": "hop"}}}}}}}]},
     {"id": "s-16", "x": 900, "y": 2000, "blocks": [{"type": "myblock_define", "fields": {"NAME": "hop"}, "inputs": {"DO": {"block": {"type": "motion_changex", "fields": {"DX": 10}}}}}]},
     {"id": "s-17", "x": 900, "y": 2200, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "speech_sayfor", "fields": {"TEXT": "Hi"}, "inputs": {"SECS": {"block": {"type": "math_number", "fields": {"NUM": 2}}}}}}}}]},
+    {"id": "s-18", "x": 900, "y": 2400, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "motion_changex", "inputs": {"DX": {"block": {"type": "random_pick", "inputs": {"FROM": {"block": {"type": "math_number", "fields": {"NUM": 1}}}, "TO": {"block": {"type": "math_number", "fields": {"NUM": 6}}}}}}}, "next": {"block": {"type": "timer_reset", "next": {"block": {"type": "motion_changey", "inputs": {"DY": {"block": {"type": "timer_value"}}}}}}}}}}}]},
 ]
 
 failures = []
@@ -157,7 +158,7 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 17, f"seventeen top-level scripts after load (got {len(saved)})")
+    check(len(saved) == 18, f"eighteen top-level scripts after load (got {len(saved)})")
     # Every script comes back with the same blocks (ids ignored) and the same position.
     for i, want in enumerate(SCRIPTS):
         got = saved[i] if i < len(saved) else {}

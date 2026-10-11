@@ -46,7 +46,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A9. Blocks-mode tests:** one browser test per category (motion, looks, sound, events, control, sensing, operators, variables, my blocks), plus sprite, backdrop and round-trip tests.
 
 - [x] **A10. Blocks gap, batch 16:** speech bubbles (say, say for N secs, think, think for N secs). Plan: `plan/blocks-gap-plan.md`.
-- [ ] **A11. Blocks gap, batch 17:** pick random, timer and reset timer.
+- [x] **A11. Blocks gap, batch 17:** pick random, timer and reset timer.
 - [ ] **A12. Blocks gap, batch 18:** go to sprite, go to random position, glide, bounce on edge, point towards, x/y/direction reporters.
 - [ ] **A13. Blocks gap, batch 19:** broadcast and wait, stop this script / stop all, and key and click events without a green flag (needs a decision first).
 - [ ] **A14. Blocks gap, batch 20:** lists (schema change, add/delete/item/length/contains).
@@ -127,3 +127,4 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - 2026-10-10: Blocks batch 14 (A6, My Blocks): define [name] (a hat with its body) and call [name] (a dropdown of the defines in the editor). Blocks are per sprite; a define on its own does nothing, and calling an undefined block does nothing. Limits: no inputs or outputs yet; renaming a define leaves old calls pointing at the old name. Tests: `tests/my_blocks_test.py`; round-trip script 16 added.
 - 2026-10-10: Blocks batch 15 (A8, uploads): Upload costume… (for the sprite being edited) and Upload backdrop… (for the stage). PNG, JPEG or GIF, up to 512 KB each. A project with uploads is saved as a zip bundle (project.json plus assets/…, as the schema says); a project without uploads stays a plain JSON file. Opening reads both. Uploaded backdrops become the starting backdrop. Limits: images are drawn at their own size, scaled to fit about 120 units; the touch check still uses the circle; no total size limit yet. Tests: `tests/uploads_test.py`.
 - 2026-10-11: Blocks batch 16 (A10, speech): say, say for N secs, think, think for N secs. Bubbles stay above the sprite until the next one, a timer, or Stop; a timed bubble does not clear one that replaced it. Bubbles are runtime state (not saved). Tests: `tests/speech_test.py`; round-trip script 17 added.
+- 2026-10-11: Blocks batch 17 (A11, random and timer): pick random a to b (whole numbers, or decimals when an end is decimal), timer (seconds since the green flag), reset timer. Stop does not reset the timer. Tests: `tests/random_timer_test.py`; round-trip script 18 added.

@@ -53,6 +53,8 @@ const EXPR = {
   sensing_touchingedge: () => '(await sprite.touchingEdge())',
   sensing_touchingsprite: (e) => `(await sprite.touching(${JSON.stringify(e.fields?.SPRITE ?? '')}))`,
   sensing_mousex: () => '(await sprite.mouseX())',
+  timer_value: () => '(await sprite.timer())',
+  random_pick: (e) => `(await sprite.pickRandom(${operand(e, 'FROM')}, ${operand(e, 'TO')}))`,
   sensing_mousey: () => '(await sprite.mouseY())',
   sensing_mousedown: () => '(await sprite.mouseDown())',
   data_variable: (e) => `(await sprite.getVar(${JSON.stringify(e.fields?.VARIABLE ?? '')}))`,
@@ -110,6 +112,7 @@ const GEN = {
   speech_sayfor: (b) => `await sprite.sayFor(${literalOrReporter(b, 'TEXT')}, ${value(b, 'SECS')});\n`,
   speech_think: (b) => `await sprite.think(${literalOrReporter(b, 'TEXT')});\n`,
   speech_thinkfor: (b) => `await sprite.thinkFor(${literalOrReporter(b, 'TEXT')}, ${value(b, 'SECS')});\n`,
+  timer_reset: () => 'await sprite.resetTimer();\n',
   control_wait: (b) => `await sprite.wait(${value(b, 'SECONDS')});\n`,
 };
 
