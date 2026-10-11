@@ -276,6 +276,28 @@ const api = {
     post({ type: 'timer', op: 'reset' });
     await api.tick();
   },
+  // Lists: owned by the main thread, like variables. Index counts from 1; 'last' and 'all' are accepted.
+  listAdd(name, value) {
+    return ask({ what: 'list', op: 'add', name: String(name), value });
+  },
+  listDelete(name, index) {
+    return ask({ what: 'list', op: 'delete', name: String(name), index });
+  },
+  listInsert(name, index, value) {
+    return ask({ what: 'list', op: 'insert', name: String(name), index, value });
+  },
+  listReplace(name, index, value) {
+    return ask({ what: 'list', op: 'replace', name: String(name), index, value });
+  },
+  listItem(name, index) {
+    return ask({ what: 'list', op: 'item', name: String(name), index });
+  },
+  listLength(name) {
+    return ask({ what: 'list', op: 'length', name: String(name) });
+  },
+  listContains(name, value) {
+    return ask({ what: 'list', op: 'contains', name: String(name), value });
+  },
   // Stop: 'this script' ends only the current script; 'all' asks the main thread to stop every sprite.
   stopThisScript() {
     throw STOP;

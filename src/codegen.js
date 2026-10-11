@@ -33,6 +33,14 @@ function literalOrReporter(b, name) {
   return JSON.stringify(b.fields?.[name] ?? 0);
 }
 
+// A list value inside a reporter: a text literal stays text, a reporter is evaluated.
+const anyValue = (e, name) => {
+  const b = e.inputs?.[name]?.block;
+  if (!b) return '""';
+  if (b.type === 'math_number') return JSON.stringify(b.fields?.NUM ?? '');
+  return expr(b);
+};
+
 // A boolean input: a reporter, or false when empty.
 function condition(b, name) {
   const reporter = b.inputs?.[name]?.block;
@@ -60,6 +68,9 @@ const EXPR = {
   random_pick: (e) => `(await sprite.pickRandom(${operand(e, 'FROM')}, ${operand(e, 'TO')}))`,
   sensing_mousey: () => '(await sprite.mouseY())',
   sensing_mousedown: () => '(await sprite.mouseDown())',
+  data_itemoflist: (e) => `(await sprite.listItem(${JSON.stringify(e.fields?.LIST ?? '')}, ${anyValue(e, 'INDEX')}))`,
+  data_lengthoflist: (e) => `(await sprite.listLength(${JSON.stringify(e.fields?.LIST ?? '')}))`,
+  data_listcontainsitem: (e) => `(await sprite.listContains(${JSON.stringify(e.fields?.LIST ?? '')}, ${anyValue(e, 'ITEM')}))`,
   data_variable: (e) => `(await sprite.getVar(${JSON.stringify(e.fields?.VARIABLE ?? '')}))`,
   operator_add: (e) => `(${operand(e, 'NUM1')} + ${operand(e, 'NUM2')})`,
   operator_subtract: (e) => `(${operand(e, 'NUM1')} - ${operand(e, 'NUM2')})`,
@@ -103,6 +114,10 @@ const GEN = {
   control_if: (b) => `if (${condition(b, 'CONDITION')}) {\n${body(b, 'DO')}}\n`,
   control_wait_until: (b) => `while (!${condition(b, 'CONDITION')}) {\nawait sprite.tick();\n}\n`,
   data_setvariableto: (b) => `await sprite.setVar(${JSON.stringify(b.fields?.VARIABLE ?? '')}, ${literalOrReporter(b, 'VALUE')});\n`,
+  data_addtolist: (b) => `await sprite.listAdd(${JSON.stringify(b.fields?.LIST ?? '')}, ${literalOrReporter(b, 'ITEM')});\n`,
+  data_deleteoflist: (b) => `await sprite.listDelete(${JSON.stringify(b.fields?.LIST ?? '')}, ${literalOrReporter(b, 'INDEX')});\n`,
+  data_insertatlist: (b) => `await sprite.listInsert(${JSON.stringify(b.fields?.LIST ?? '')}, ${literalOrReporter(b, 'INDEX')}, ${literalOrReporter(b, 'ITEM')});\n`,
+  data_replaceitemoflist: (b) => `await sprite.listReplace(${JSON.stringify(b.fields?.LIST ?? '')}, ${literalOrReporter(b, 'INDEX')}, ${literalOrReporter(b, 'ITEM')});\n`,
   data_changevariableby: (b) => `await sprite.changeVar(${JSON.stringify(b.fields?.VARIABLE ?? '')}, ${value(b, 'VALUE')});\n`,
   sound_playuntil: (b) => `await sprite.playSound(${JSON.stringify(b.fields?.SOUND ?? 'Pop')}, true);\n`,
   sound_start: (b) => `await sprite.playSound(${JSON.stringify(b.fields?.SOUND ?? 'Pop')}, false);\n`,

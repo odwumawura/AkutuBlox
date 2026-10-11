@@ -63,13 +63,14 @@ function markClean() {
 // Blocks editor: scratch-blocks.
 const blocksEditor = injectScratch(document.getElementById('blocklyDiv'));
 blocksEditor.onChange(() => markDirty());
-blocksEditor.onVariableCreated((name) => {
+blocksEditor.onVariableCreated((name, type) => {
   if (name.length > 40) {
     alert('Variable names can be up to 40 characters.');
-    blocksEditor.removeVariable(name);
+    blocksEditor.removeVariable(name, type);
     return;
   }
-  stage.addVariable(name);
+  if (type === 'list') stage.addList(name);
+  else stage.addVariable(name);
   markDirty();
 });
 
@@ -83,6 +84,7 @@ function snapshotBlocksProject(base) {
   const project = blocksProjectFromWorkspace(base, blocksEditor, stage.getStarts(), blocksUi.selectedId);
   // Blocks refer to variables by name; the saved id only needs to be unique and match the schema.
   project.blocks.stage.variables = stage.getVariables().map((v, i) => ({ id: `v${i + 1}`, name: v.name, value: v.value }));
+  project.blocks.stage.lists = stage.getLists().map((l, i) => ({ id: `l${i + 1}`, name: l.name, items: l.items }));
   return project;
 }
 
@@ -570,4 +572,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => { blocksEditor.quiet(() => blocksEditor.setScripts(scripts)); schedulePrograms(); } };
+window.__akutu = { sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), lists: () => stage.getLists(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => { blocksEditor.quiet(() => blocksEditor.setScripts(scripts)); schedulePrograms(); } };

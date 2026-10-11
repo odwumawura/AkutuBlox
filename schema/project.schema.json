@@ -146,7 +146,7 @@
             "lists": {
               "type": "array",
               "items": {
-                "$ref": "#/$defs/variable"
+                "$ref": "#/$defs/list"
               }
             }
           }
@@ -331,6 +331,35 @@
           "type": "array",
           "items": {
             "type": "object"
+          }
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
           }
         }
       }

@@ -23,6 +23,7 @@ export function createStage(canvas, logEl) {
   let backdrop = 'builtin:meadow';
   let workers = new Map();
   const images = new Map(); // asset path -> Image, for uploaded costumes and backdrops
+  let lists = new Map(); // name -> array of values, shared by all sprites
   let programs = []; // [{ id, code }] for every sprite; runs idle (events only) when the project is not running
   let running = false;
   let waits = new Map(); // broadcast-and-wait tokens -> { left, resolve }
@@ -51,6 +52,7 @@ export function createStage(canvas, logEl) {
   function answerFor(msg, id) {
     switch (msg.what) {
       case 'var': return variables.get(msg.name) ?? 0;
+      case 'list': return listOp(msg);
       case 'mouseX': return mouse.x;
       case 'mouseY': return mouse.y;
       case 'mouseDown': return mouse.down;
@@ -328,6 +330,51 @@ export function createStage(canvas, logEl) {
     if (!variables.has(name)) variables.set(name, 0);
   }
 
+  // Lists: a missing list answers as empty. Index counts from 1; 'last' is the final item, 'all' empties a list.
+  function listOp(msg) {
+    const items = lists.get(msg.name);
+    if (!items) return msg.op === 'length' ? 0 : msg.op === 'contains' ? false : msg.op === 'item' ? '' : null;
+    const n = items.length;
+    const at = (v) => (String(v).toLowerCase() === 'last' ? n : Math.round(Number(v)));
+    switch (msg.op) {
+      case 'add': items.push(msg.value); return null;
+      case 'delete': {
+        if (String(msg.index).toLowerCase() === 'all') items.length = 0;
+        else {
+          const i = at(msg.index);
+          if (i >= 1 && i <= n) items.splice(i - 1, 1);
+        }
+        return null;
+      }
+      case 'insert': {
+        const i = at(msg.index);
+        if (i >= 1 && i <= n + 1) items.splice(i - 1, 0, msg.value);
+        return null;
+      }
+      case 'replace': {
+        const i = at(msg.index);
+        if (i >= 1 && i <= n) items[i - 1] = msg.value;
+        return null;
+      }
+      case 'item': {
+        const i = at(msg.index);
+        return i >= 1 && i <= n ? items[i - 1] : '';
+      }
+      case 'length': return n;
+      case 'contains': return items.some((v) => String(v).toLowerCase() === String(msg.value).toLowerCase());
+      default: return null;
+    }
+  }
+  // list: [{ name, items }] from the saved project.
+  function setLists(list) {
+    lists = new Map((list || []).map((l) => [l.name, [...(l.items || [])]]));
+  }
+  function addList(name) {
+    if (!lists.has(name)) lists.set(name, []);
+  }
+  function getLists() {
+    return [...lists].map(([name, items]) => ({ name, items: [...items] }));
+  }
   function getVariables() {
     return [...variables].map(([name, value]) => ({ name, value }));
   }
@@ -424,5 +471,5 @@ export function createStage(canvas, logEl) {
     return [...starts].map(([id, p]) => ({ id, ...p }));
   }
 
-  return { greenFlag, stop, setPrograms, setAssets, getSoundLog: () => sound.log(), setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, getVariables };
+  return { greenFlag, stop, setPrograms, setAssets, getSoundLog: () => sound.log(), setSprites, setBackdrops, switchBackdrop, nextBackdrop, getBackdrop, getSprites, getStarts, setVariables, addVariable, setLists, addList, getLists, getVariables };
 }

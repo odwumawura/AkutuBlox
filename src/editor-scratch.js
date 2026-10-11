@@ -230,6 +230,7 @@ const sensingBlocks = () => `
 
 const flyoutFrom = (xml) => Array.from(new DOMParser().parseFromString(`<xml xmlns="http://www.w3.org/1999/xhtml">${xml}</xml>`, 'text/xml').documentElement.children);
 
+// The Lists category has its own callback, registered after inject (see injectScratch).
 export const TOOLBOX_XML = `
 <xml>
   <category name="Events" id="events" colour="#FFBF00">
@@ -284,6 +285,7 @@ export const TOOLBOX_XML = `
   <category name="Sensing" id="sensing" colour="#5CB1D6">${sensingBlocks()}
   </category>
   <category name="Variables" id="variables" colour="#FF8C1A" custom="VARIABLE"/>
+  <category name="Lists" id="lists" colour="#FF661A"></category>
   <category name="Operators" id="operators" colour="#59C059">
     <block type="random_pick">${num('FROM', 1)}${num('TO', 10)}</block>
     <block type="operator_add">${num('NUM1', 0)}${num('NUM2', 0)}</block>
@@ -359,6 +361,13 @@ const MAP = [
   { old: 'event_broadcastwait', scratch: 'event_broadcastwait', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'MSG' },
   { old: 'stop_this_script', scratch: 'stop_this_script', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'stop_all_scripts', scratch: 'stop_all_scripts', numberInputs: {}, statements: {}, boolInputs: {} },
+  { old: 'data_addtolist', scratch: 'data_addtolist', numberInputs: { ITEM: 'ITEM' }, textInputs: ['ITEM'], listField: 'LIST', statements: {}, boolInputs: {} },
+  { old: 'data_deleteoflist', scratch: 'data_deleteoflist', numberInputs: { INDEX: 'INDEX' }, textInputs: ['INDEX'], listField: 'LIST', statements: {}, boolInputs: {} },
+  { old: 'data_insertatlist', scratch: 'data_insertatlist', numberInputs: { ITEM: 'ITEM', INDEX: 'INDEX' }, textInputs: ['ITEM', 'INDEX'], listField: 'LIST', statements: {}, boolInputs: {} },
+  { old: 'data_replaceitemoflist', scratch: 'data_replaceitemoflist', numberInputs: { INDEX: 'INDEX', ITEM: 'ITEM' }, textInputs: ['INDEX', 'ITEM'], listField: 'LIST', statements: {}, boolInputs: {} },
+  { old: 'data_itemoflist', scratch: 'data_itemoflist', numberInputs: {}, statements: {}, boolInputs: {}, listField: 'LIST' },
+  { old: 'data_lengthoflist', scratch: 'data_lengthoflist', numberInputs: {}, statements: {}, boolInputs: {}, listField: 'LIST' },
+  { old: 'data_listcontainsitem', scratch: 'data_listcontainsitem', numberInputs: {}, statements: {}, boolInputs: {}, listField: 'LIST' },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
@@ -372,6 +381,9 @@ const REPORTERS = {
   sensing_mousedown: [],
   operator_add: ['NUM1', 'NUM2'],
   random_pick: ['FROM', 'TO'],
+  data_itemoflist: ['INDEX'],
+  data_lengthoflist: [],
+  data_listcontainsitem: ['ITEM'],
   move2_x: [],
   move2_y: [],
   move2_dir: [],
@@ -387,16 +399,18 @@ const REPORTERS = {
   operator_not: ['OPERAND'],
 };
 // Operands that are text in Scratch (comparisons) use a text shadow; the rest use a number shadow.
-const TEXT_OPERANDS = new Set(['operator_lt', 'operator_gt', 'operator_equals']);
+const TEXT_OPERANDS = new Set(['operator_lt', 'operator_gt', 'operator_equals', 'data_listcontainsitem']);
 
 // ---- Variables ----
 // Variables are global. Ids are derived from names, so blocks and the palette agree.
 const varId = (name) => `var_${name}`;
+const listId = (name) => `list_${name}`;
 const variableName = (block) => block.getField('VARIABLE')?.getText() ?? '';
+const fieldText = (block, field) => block.getField(field)?.getText() ?? '';
 
 // The Variables palette: make a variable, one reporter per variable, and set/change for the first one.
 function variableFlyout(ws) {
-  const vars = ws.getVariableMap().getAllVariables().slice().sort((a, b) => a.name.localeCompare(b.name));
+  const vars = ws.getVariableMap().getAllVariables().filter((v) => v.type !== 'list').sort((a, b) => a.name.localeCompare(b.name));
   const field = (name) => `<field name="VARIABLE" id="${esc(varId(name))}" variabletype="">${esc(name)}</field>`;
   const parts = ['<button text="Make a Variable" callbackKey="CREATE_VARIABLE"/>'];
   for (const v of vars) parts.push(`<block type="data_variable">${field(v.name)}</block>`);
@@ -407,6 +421,25 @@ function variableFlyout(ws) {
   const dom = new DOMParser().parseFromString(`<xml xmlns="http://www.w3.org/1999/xhtml">${parts.join('')}</xml>`, 'text/xml').documentElement;
   return Array.from(dom.children);
 }
+
+// The Lists palette: make a list, then the list blocks for the first list.
+// The Lists palette: make a list, then the list blocks for the first list (rebuilt when the category is opened).
+const listBlocks = () => {
+  const lists = liveWs ? liveWs.getVariableMap().getAllVariables().filter((v) => v.type === 'list').sort((a, b) => a.name.localeCompare(b.name)) : [];
+  const listField = (name) => `<field name="LIST" id="${esc(listId(name))}" variabletype="list">${esc(name)}</field>`;
+  let xml = '<button text="Make a List" callbackKey="CREATE_LIST"/>';
+  if (lists.length) {
+    const L = listField(lists[0].name);
+    xml += `<block type="data_addtolist">${L}${txt('ITEM', 'thing')}</block>`;
+    xml += `<block type="data_deleteoflist">${L}${txt('INDEX', 1)}</block>`;
+    xml += `<block type="data_insertatlist">${L}${txt('ITEM', 'thing')}${txt('INDEX', 1)}</block>`;
+    xml += `<block type="data_replaceitemoflist">${L}${txt('INDEX', 1)}${txt('ITEM', 'thing')}</block>`;
+    xml += `<block type="data_itemoflist">${L}${txt('INDEX', 1)}</block>`;
+    xml += `<block type="data_lengthoflist">${L}</block>`;
+    xml += `<block type="data_listcontainsitem">${L}${txt('ITEM', 'thing')}</block>`;
+  }
+  return xml;
+};
 
 // ---- Reading a Scratch input value ----
 function literalOf(target) {
@@ -425,10 +458,12 @@ function inputToOld(block, scratchName) {
 
 function reporterToOld(block) {
   if (block.type === 'data_variable') return { type: 'data_variable', fields: { VARIABLE: variableName(block) } };
+  const listName = byScratch[block.type]?.listField;
   if (block.type === 'sensing_touchingsprite') return { type: 'sensing_touchingsprite', fields: { SPRITE: block.getFieldValue('SPRITE') ?? '' } };
   const names = REPORTERS[block.type];
   if (!names) return undefined; // unknown reporters are not saved
   const out = { type: block.type };
+  if (listName) out.fields = { LIST: fieldText(block, listName) };
   for (const name of names) {
     const input = inputToOld(block, name);
     if (input.kind === 'reporter') out.inputs = { ...(out.inputs || {}), [name]: { block: input.block } };
@@ -445,6 +480,7 @@ function chainToOld(block) {
   const out = {};
   out.type = m.old;
   if (m.varField) out.fields = { VARIABLE: variableName(block) };
+  if (m.listField) out.fields = { LIST: fieldText(block, m.listField) };
   if (m.dropdown) out.fields = { [m.dropdown]: block.getFieldValue(m.dropdown) ?? '' };
   if (m.hat) {
     const body = chainToOld(block.getNextBlock());
@@ -471,6 +507,7 @@ function chainToOld(block) {
 }
 
 // ---- Our format -> Scratch XML ----
+const listFieldXml = (name) => `<field name="LIST" id="${esc(listId(name ?? ''))}" variabletype="list">${esc(name ?? '')}</field>`;
 const variableField = (name) => `<field name="VARIABLE" id="${esc(varId(name ?? ''))}" variabletype="">${esc(name ?? '')}</field>`;
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -497,6 +534,7 @@ function operandsXml(e, names) {
 function blockXml(e) {
   if (e.type === 'sensing_touchingsprite') return `<block type="sensing_touchingsprite"><field name="SPRITE">${esc(e.fields?.SPRITE ?? '')}</field></block>`;
   if (e.type === 'data_variable') return `<block type="data_variable">${variableField(e.fields?.VARIABLE)}</block>`;
+  if (byOld[e.type]?.listField) return `<block type="${e.type}">${listFieldXml(e.fields?.LIST)}${operandsXml(e, REPORTERS[e.type] || [])}</block>`;
   if (REPORTERS[e.type]) return `<block type="${e.type}">${operandsXml(e, REPORTERS[e.type])}</block>`;
   return '';
 }
@@ -512,6 +550,7 @@ function chainToXml(json) {
     return `<block type="${m.scratch}">${inner}</block>`;
   }
   if (m.varField) inner += variableField(json.fields?.VARIABLE);
+  if (m.listField) inner += listFieldXml(json.fields?.LIST);
   for (const [oldName, scratchName] of Object.entries(m.numberInputs)) {
     if (json.inputs?.[oldName]?.block) {
       inner += reporterXml(json.inputs[oldName].block, scratchName);
@@ -562,12 +601,13 @@ export function scratchAdapter(ws) {
       });
     },
     // Replaces the variables in the editor with these names (call inside quiet()).
-    setVariables(names) {
+    setVariables(names, listNames = []) {
       ws.getVariableMap().clear();
       for (const name of names) ws.createVariable(name, '', varId(name));
+      for (const name of listNames) ws.createVariable(name, 'list', listId(name));
     },
-    removeVariable(name) {
-      const v = ws.getVariable(name);
+    removeVariable(name, type = '') {
+      const v = ws.getVariable(name, type);
       if (v) ws.deleteVariableById(v.getId());
     },
     // Calls cb(name) when the user makes a variable from the palette.
@@ -575,7 +615,7 @@ export function scratchAdapter(ws) {
       ws.addChangeListener((e) => {
         if (e.type !== ScratchBlocks.Events.VAR_CREATE) return;
         const v = ws.getVariableById(e.varId);
-        if (v) cb(v.name);
+        if (v) cb(v.name, v.type);
       });
     },
     resize() {
@@ -602,9 +642,16 @@ export function injectScratch(el) {
     theme: ScratchTheme,
   });
   ws.registerToolboxCategoryCallback('VARIABLE', variableFlyout);
+  // scratch-blocks asks for variable and list names through a prompt handler. The Scratch GUI normally sets it; here it is the browser prompt.
+  ScratchBlocks.ScratchVariables.setPromptHandler((message, defaultValue, callback) => {
+    const text = window.prompt(message, defaultValue ?? '');
+    callback(text && text.trim() ? text.trim() : null);
+  });
+  // Make a List: scratch-blocks' own prompt, asking for a list name (lists are their own variable type).
+  ws.registerButtonCallback('CREATE_LIST', () => setTimeout(() => ScratchBlocks.ScratchVariables.createVariable(ws, undefined, 'list')));
   // Looks and Sensing hold dropdowns (costume and sprite names). Their flyout is built once, so each time
   // one is opened it is rebuilt from the current names.
-  const freshFlyouts = { Looks: looksBlocks, Sensing: sensingBlocks };
+  const freshFlyouts = { Looks: looksBlocks, Sensing: sensingBlocks, Lists: listBlocks };
   ws.addChangeListener((e) => {
     if (e.type !== 'toolbox_item_select') return;
     const toolbox = ws.getToolbox();

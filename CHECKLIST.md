@@ -49,7 +49,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A11. Blocks gap, batch 17:** pick random, timer and reset timer.
 - [x] **A12. Blocks gap, batch 18:** go to sprite, go to random position, glide, bounce on edge, point towards, x/y/direction reporters.
 - [x] **A13. Blocks gap, batch 19:** broadcast and wait, stop this script / stop all, and key and click events without a green flag (decided: yes).
-- [ ] **A14. Blocks gap, batch 20:** lists (schema change, add/delete/item/length/contains).
+- [x] **A14. Blocks gap, batch 20:** lists (schema change, add/delete/item/length/contains).
 - [ ] **A15. Blocks gap, batch 21:** effects (colour, ghost, brightness) and the sound volume reporter.
 - [ ] **T1. Student test (first hour), 4 to 6 students:** run after A12. Pass bar in the plan. Facilitator notes and recordings stay out of the repo.
 
@@ -131,3 +131,4 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - 2026-10-11: Blocks batch 18 (A12, beginner motion): go to [sprite], go to random position, glide [secs] to x y (30 frames a second, ends exactly on the target), if on edge bounce, point towards [sprite] (90 is right, 0 is up), x position, y position, direction. Tests: `tests/motion2_test.py`; round-trip script 19 added. Limit: bounce uses the circle edge, as the rest of the stage does.
 - 2026-10-11: Blocks batch 19 (A13): broadcast [msg] and wait; stop this script; stop all. Key, click and message scripts run without a green flag: when the project is not running, each sprite keeps an idle worker with its event scripts. Stop respawns them from the current scripts; edits rebuild them after a short delay. Tests: `tests/control2_test.py`; `tests/events_test.py` updated (keys now work after Stop, by design). Round-trip script 20 added. Limit: idle workers do not keep state between runs (a Stop resets to the start positions, as before).
 - 2026-10-11: Full suite run after batch 19: all 27 test files and `tests/smoke.py` pass. Plus `npm run build`.
+- 2026-10-11: Blocks batch 20 (A14, lists): a Lists category with Make a List (scratch-blocks prompt; a browser prompt handler is installed), add, delete (number, last or all), insert, replace, item, length and contains (case-insensitive). Lists are saved as `stage.lists` with `{id, name, items}` (schema updated, and a list definition added). Lists keep their items across green-flag runs and are saved with the project. Tests: `tests/lists_test.py`; round-trip scripts 21 and 22 added. Limits: no list monitor on the stage (the list is not shown on the stage yet), no list rename, and deleting a list in the editor does not remove it from the project yet.
