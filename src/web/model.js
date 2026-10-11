@@ -8,6 +8,16 @@ const STYLE_CSS = {
 };
 const LEVEL_TAGS = { 1: 'h1', 2: 'h2', 3: 'h3' };
 const VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+// Hidden elements carry this class on the canvas, so they stay visible and selectable there. Saved as props.hidden.
+export const HIDDEN_CLASS = 'akutu-hidden';
+const classNames = (comp) => (comp.getClasses?.() || []).map((c) => (typeof c === 'string' ? c : c.name ?? c.getName?.() ?? ''));
+export function setComponentHidden(comp, hidden) {
+  if (hidden) comp.addClass(HIDDEN_CLASS);
+  else comp.removeClass(HIDDEN_CLASS);
+}
+export function isComponentHidden(comp) {
+  return classNames(comp).includes(HIDDEN_CLASS);
+}
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const px = (v) => (typeof v === 'number' ? `${v}px` : String(v));
@@ -24,7 +34,8 @@ function textOf(comp) {
 function treeFromComponent(comp) {
   const node = treeFromComponentInner(comp);
   const attrs = comp.getAttributes();
-  if (attrs.hidden !== undefined) node.props = { ...node.props, hidden: true };
+  // Older files used the hidden attribute; both forms mean hidden.
+  if (attrs.hidden !== undefined || isComponentHidden(comp)) node.props = { ...node.props, hidden: true };
   return node;
 }
 
@@ -76,8 +87,8 @@ function editorJsonFor(node) {
   const style = {};
   for (const [k, v] of Object.entries(node.style || {})) if (STYLE_CSS[k]) style[STYLE_CSS[k]] = px(v);
   const attributes = { id: node.id };
-  if (node.props?.hidden) attributes.hidden = '';
-  const base = { attributes, style };
+  const classes = node.props?.hidden ? [HIDDEN_CLASS] : [];
+  const base = { attributes, style, classes };
   const text = [{ type: 'textnode', content: node.props?.text || '' }];
   switch (node.type) {
     case 'heading':
@@ -90,7 +101,7 @@ function editorJsonFor(node) {
     case 'link': {
       const linkAttrs = { id: node.id, href: node.props.pageId ? '#' : node.props.href || '#' };
       if (node.props.pageId) linkAttrs['data-page-id'] = node.props.pageId;
-      return { ...base, tagName: 'a', attributes: { ...linkAttrs, ...(node.props.hidden ? { hidden: '' } : {}) }, components: text };
+      return { ...base, tagName: 'a', attributes: linkAttrs, components: text };
     }
     case 'textInput':
       return { ...base, tagName: 'input', attributes: { ...attributes, type: 'text', placeholder: node.props?.placeholder || '' } };
@@ -170,6 +181,9 @@ function htmlFor(node, pages) {
   }
 }
 
+// Exported sites load only their own files. Images may come from https or be uploaded as data: URLs.
+export const SITE_CSP = "default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'";
+
 export function renderPage(page, pages, { site = true, script = '' } = {}) {
   const css = [];
   page.root.children?.forEach((c) => cssFor(c, css));
@@ -179,6 +193,7 @@ export function renderPage(page, pages, { site = true, script = '' } = {}) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+${site ? `<meta http-equiv="Content-Security-Policy" content="${SITE_CSP}">` : ''}
 <title>${esc(page.title || page.name)}</title>
 ${site ? '<link rel="stylesheet" href="styles.css">' : `<style>${'[hidden]{display:none !important}\\n' + css.join('\\n')}</style>`}
 </head>

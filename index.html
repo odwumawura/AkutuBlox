@@ -57,8 +57,17 @@
               <button id="export" class="primary">Export site (.zip)</button>
               <button id="preview" class="secondary">Preview page</button>
               <button id="delete-el" class="secondary" title="Remove the selected element">Delete element</button>
+              <button id="rename-page" class="secondary">Rename page</button>
+              <button id="delete-page" class="secondary">Delete page</button>
+              <button id="show-hidden" class="secondary" aria-pressed="true" title="Hidden elements are not shown on the live site; this only changes the editor view">Hidden elements: shown</button>
+              <label class="theme-field">Font <select id="theme-font" aria-label="Font pair"><option value="inter-poppins">Inter and Poppins</option><option value="nunito-inter">Nunito and Inter</option><option value="poppins-nunito">Poppins and Nunito</option></select></label>
+              <label class="theme-field">Spacing <select id="theme-spacing" aria-label="Spacing scale"><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></select></label>
             </div>
             <div id="palette" class="palette" aria-label="Add components"></div>
+            <div id="element-panel" class="element-panel" hidden>
+              <span id="el-title" class="el-title"></span>
+              <label><input type="checkbox" id="el-hidden"> Hidden on the live site</label>
+            </div>
             <div id="gjs"></div>
           </div>
           <div class="side-pane">

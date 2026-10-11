@@ -21,7 +21,7 @@ import {
   readProjectFile,
   readImageUpload,
 } from './project.js';
-import { siteFiles, previewHtml, treeFromEditor, PALETTE } from './web/model.js';
+import { siteFiles, previewHtml, treeFromEditor, PALETTE, HIDDEN_CLASS, setComponentHidden, isComponentHidden } from './web/model.js';
 import {
   INTERACTION_TOOLBOX,
   registerInteractionBlocks,
@@ -381,6 +381,7 @@ function fillPageSelect() {
     el.pageSelect.appendChild(opt);
   }
   el.pageSelect.value = state.webPageId;
+  fillThemeControls();  // the theme comes from the same project, so fill it at the same time
 }
 
 // Save the canvas into the current page, then show another page.
@@ -413,6 +414,99 @@ document.getElementById('add-page').addEventListener('click', () => {
   state.project.web.pages.push(newWebPage(index));
   markDirty();
   switchWebPage(`page-${index}`);
+});
+
+// ---- Page rename, delete, theme, and hidden elements ----
+
+// Pages that link to, or run an action against, pageId. Deleting such a page would leave a broken link.
+function pagesLinkingTo(pageId) {
+  return state.project.web.pages.filter((p) => p.id !== pageId && (
+    JSON.stringify(p.interactions || []).includes(`"${pageId}"`) || JSON.stringify(p.root).includes(`"pageId":"${pageId}"`)));
+}
+
+function renameWebPage() {
+  captureWeb();
+  const page = state.project.web.pages.find((p) => p.id === state.webPageId);
+  const name = (prompt('New page name (up to 40 characters):', page.name) || '').trim();
+  if (!name || name === page.name) return;
+  if (name.length > 40) return alert('Page names can be up to 40 characters.');
+  if (state.project.web.pages.some((p) => p.id !== page.id && p.name.toLowerCase() === name.toLowerCase())) return alert(`Another page is already called ${name}.`);
+  page.name = name;  // The file name (path) stays the same, so links and exported files are not affected.
+  markDirty();
+  fillPageSelect();
+  previewCurrentPage();
+}
+
+function deleteWebPage() {
+  captureWeb();
+  const pages = state.project.web.pages;
+  const page = pages.find((p) => p.id === state.webPageId);
+  if (pages.length <= 1) return alert('A site needs at least one page.');
+  if (page.isHome) return alert('The home page cannot be deleted.');
+  const linked = pagesLinkingTo(page.id);
+  if (linked.length) return alert(`${page.name} is linked from ${linked.map((p) => p.name).join(', ')}. Remove those links first.`);
+  if (!confirm(`Delete ${page.name}? Its elements and blocks will be removed.`)) return;
+  const home = pages.find((p) => p.isHome && p.id !== page.id) || pages.find((p) => p.id !== page.id);
+  state.project.web.pages = pages.filter((p) => p.id !== page.id);
+  // Show the home page next. Set the page id first so the capture step does not write the deleted page back.
+  state.webPageId = loadWebPage(state.project, home.id, editor);
+  showInteractionsFor(state.webPageId);
+  state.webSnapshot = webSnapshot();
+  markDirty();
+  fillPageSelect();
+  previewCurrentPage();
+}
+
+document.getElementById('rename-page').addEventListener('click', renameWebPage);
+document.getElementById('delete-page').addEventListener('click', deleteWebPage);
+
+// Theme: stored in the file now; the look is applied in a later step (B5).
+function fillThemeControls() {
+  const t = state.project.web.theme || {};
+  document.getElementById('theme-font').value = t.fontPair || 'inter-poppins';
+  document.getElementById('theme-spacing').value = t.spacingScale || 'comfortable';
+}
+function setTheme(key, value) {
+  captureWeb();
+  state.project.web.theme = { ...(state.project.web.theme || {}), [key]: value };
+  markDirty();
+}
+document.getElementById('theme-font').addEventListener('change', (e) => setTheme('fontPair', e.target.value));
+document.getElementById('theme-spacing').addEventListener('change', (e) => setTheme('spacingScale', e.target.value));
+
+// Hidden elements: shown on the canvas (dashed outline) by default, so they can be selected and edited.
+const HIDDEN_CANVAS_CSS = `.${HIDDEN_CLASS}{opacity:.5;outline:2px dashed #94a3b8;outline-offset:-2px}.hide-hidden .${HIDDEN_CLASS}{display:none !important}`;
+function applyShowHidden() {
+  const on = document.getElementById('show-hidden').getAttribute('aria-pressed') === 'true';
+  editor.Canvas.getBody()?.classList.toggle('hide-hidden', !on);
+}
+editor.on('load', () => {
+  editor.Css.addRules(HIDDEN_CANVAS_CSS);
+  applyShowHidden();
+});
+document.getElementById('show-hidden').addEventListener('click', (e) => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  e.currentTarget.textContent = on ? 'Hidden elements: shown' : 'Hidden elements: hidden';
+  applyShowHidden();
+});
+
+const elementPanel = document.getElementById('element-panel');
+const hiddenBox = document.getElementById('el-hidden');
+editor.on('component:selected', (c) => {
+  const real = c && c.get('type') !== 'wrapper';
+  elementPanel.hidden = !real;
+  if (!real) return;
+  document.getElementById('el-title').textContent = `Selected: <${c.get('tagName') || 'div'}>`;
+  hiddenBox.checked = isComponentHidden(c);
+});
+editor.on('component:deselected', () => { elementPanel.hidden = true; });
+hiddenBox.addEventListener('change', () => {
+  const c = editor.getSelected();
+  if (!c) return;
+  setComponentHidden(c, hiddenBox.checked);
+  markDirty();
+  previewCurrentPage();
 });
 
 function buildSiteProject() {
@@ -572,4 +666,4 @@ window.addEventListener('beforeunload', (e) => {
 loadIntoEditors(newBlocksProject('Square walker'));
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
-window.__akutu = { sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), lists: () => stage.getLists(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => { blocksEditor.quiet(() => blocksEditor.setScripts(scripts)); schedulePrograms(); } };
+window.__akutu = { web: () => state.project?.web, sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), lists: () => stage.getLists(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => { blocksEditor.quiet(() => blocksEditor.setScripts(scripts)); schedulePrograms(); } };

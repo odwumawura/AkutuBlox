@@ -12,7 +12,11 @@ main { height: calc(100% - 52px); }
 .blocks-layout { display: grid; grid-template-columns: 1fr 520px; height: 100%; }
 .blockly-pane { min-height: 0; }
 .stage-pane { padding: 12px; border-left: 1px solid #dfe4ec; background: #fff; display: flex; flex-direction: column; gap: 10px; }
-.controls { display: flex; gap: 8px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.theme-field { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.element-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #dfe4ec; font-size: 14px; }
+.element-panel[hidden] { display: none; }
+.el-title { font-weight: 600; font-family: monospace; }
 button { font: inherit; border-radius: 8px; padding: 8px 14px; border: 1px solid transparent; cursor: pointer; font-weight: 600; }
 button.primary { background: #0f766e; color: #fff; }
 button.secondary { background: #fff; color: #0f766e; border-color: #0f766e; }
