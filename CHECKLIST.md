@@ -45,6 +45,14 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A8 decision:** flat vector art for the built-in costumes and backdrops (the current simple shapes). Decided by you.
 - [x] **A9. Blocks-mode tests:** one browser test per category (motion, looks, sound, events, control, sensing, operators, variables, my blocks), plus sprite, backdrop and round-trip tests.
 
+- [ ] **A10. Blocks gap, batch 16:** speech bubbles (say, say for N secs, think, think for N secs). Plan: `plan/blocks-gap-plan.md`.
+- [ ] **A11. Blocks gap, batch 17:** pick random, timer and reset timer.
+- [ ] **A12. Blocks gap, batch 18:** go to sprite, go to random position, glide, bounce on edge, point towards, x/y/direction reporters.
+- [ ] **A13. Blocks gap, batch 19:** broadcast and wait, stop this script / stop all, and key and click events without a green flag (needs a decision first).
+- [ ] **A14. Blocks gap, batch 20:** lists (schema change, add/delete/item/length/contains).
+- [ ] **A15. Blocks gap, batch 21:** effects (colour, ghost, brightness) and the sound volume reporter.
+- [ ] **T1. Student test (first hour), 4 to 6 students:** run after A12. Pass bar in the plan. Facilitator notes and recordings stay out of the repo.
+
 ## Track B: Web builder (Phase 1, mostly done)
 
 - [x] **B1.** Remove the dark strip at the right edge of the component palette. (Confirmed by you.)
