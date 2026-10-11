@@ -106,6 +106,10 @@ const GEN = {
   sound_changevolume: (b) => `await sprite.changeVolume(${value(b, 'VOLUME')});\n`,
   myblock_define: (b) => `sprite.defineBlock(${JSON.stringify(b.fields?.NAME ?? '')}, async () => {\n${body(b, 'DO')}});\n`,
   myblock_call: (b) => `await sprite.callBlock(${JSON.stringify(b.fields?.BLOCK ?? '')});\n`,
+  speech_say: (b) => `await sprite.say(${literalOrReporter(b, 'TEXT')});\n`,
+  speech_sayfor: (b) => `await sprite.sayFor(${literalOrReporter(b, 'TEXT')}, ${value(b, 'SECS')});\n`,
+  speech_think: (b) => `await sprite.think(${literalOrReporter(b, 'TEXT')});\n`,
+  speech_thinkfor: (b) => `await sprite.thinkFor(${literalOrReporter(b, 'TEXT')}, ${value(b, 'SECS')});\n`,
   control_wait: (b) => `await sprite.wait(${value(b, 'SECONDS')});\n`,
 };
 

@@ -4,11 +4,20 @@
 
 const ROTATION_STYLES = ['all around', 'left-right', "don't rotate"];
 
-let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false, volume: 100 };
+let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false, volume: 100, bubble: null };
 let handlers = []; // green-flag scripts
 let eventHandlers = []; // key, click and message scripts: { kind, key | name, fn }
 let customBlocks = new Map(); // My Blocks defined by this sprite: name -> body
 const waiters = []; // FIFO: each posted state waits for one 'continue'
+let bubbleSeq = 0; // counts bubbles, so a timed bubble knows whether it was replaced
+
+// Sets the bubble text (empty clears it). Returns the bubble's number.
+function showBubble(text, kind) {
+  const seq = ++bubbleSeq;
+  const t = String(text ?? '');
+  state.bubble = t === '' ? null : { text: t, kind };
+  return seq;
+}
 let askSeq = 0;
 const answers = new Map(); // requests waiting for the main thread's answer
 
@@ -190,6 +199,34 @@ const api = {
     state.volume = Math.max(0, Math.min(100, state.volume + (Number(d) || 0)));
     await api.tick();
   },
+  // Speech bubbles: say and think, until the next one or cleared. Text '' clears. "For N seconds" clears
+  // only if no newer bubble has replaced it. The bubble is runtime state, not saved in the file.
+  async say(text) {
+    showBubble(text, 'say');
+    await publish();
+  },
+  async sayFor(text, secs) {
+    const seq = showBubble(text, 'say');
+    await publish();
+    await api.wait(secs);
+    if (bubbleSeq === seq) {
+      state.bubble = null;
+      await publish();
+    }
+  },
+  async think(text) {
+    showBubble(text, 'think');
+    await publish();
+  },
+  async thinkFor(text, secs) {
+    const seq = showBubble(text, 'think');
+    await publish();
+    await api.wait(secs);
+    if (bubbleSeq === seq) {
+      state.bubble = null;
+      await publish();
+    }
+  },
   // My Blocks (sprite-local). A define hat registers its body when the program starts; a call runs it.
   // Calling a block that was never defined does nothing.
   defineBlock(name, fn) {
@@ -244,7 +281,7 @@ self.onmessage = (event) => {
     return;
   }
   if (msg.type === 'run') {
-    state = { ...msg.state, volume: 100 };
+    state = { ...msg.state, volume: 100, bubble: null };
     handlers = [];
     eventHandlers = [];
     customBlocks = new Map();

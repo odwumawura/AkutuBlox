@@ -169,6 +169,7 @@ export function createStage(canvas, logEl) {
       ctx.fill();
       ctx.restore();
     }
+    for (const s of sprites.values()) if (s.visible && s.bubble) drawBubble(s);
   }
 
   function spawn(id) {
@@ -177,7 +178,7 @@ export function createStage(canvas, logEl) {
       const msg = event.data;
       if (msg.type === 'state') {
         const s = sprites.get(id);
-        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size, rotationStyle: msg.state.rotationStyle, draggable: msg.state.draggable }, msg.state.costume));
+        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size, rotationStyle: msg.state.rotationStyle, draggable: msg.state.draggable, bubble: msg.state.bubble ?? null }, msg.state.costume));
         draw();
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask' && msg.what === 'sound') {
@@ -213,6 +214,9 @@ export function createStage(canvas, logEl) {
   function stop() {
     pendingReady = null;
     sound.stopAll();
+    // Stop clears speech bubbles, as in Scratch.
+    for (const [id, s] of sprites) if (s.bubble) sprites.set(id, { ...s, bubble: null });
+    draw();
     if (workers.size) {
       for (const w of workers.values()) w.terminate();
       workers = new Map();
@@ -225,7 +229,7 @@ export function createStage(canvas, logEl) {
     stop();
     for (const [id, start] of starts) {
       const s = sprites.get(id);
-      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable }, start.costumeIndex));
+      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable, bubble: null }, start.costumeIndex));
     }
     showBackdrop(0);
     log('— green flag');
@@ -283,6 +287,51 @@ export function createStage(canvas, logEl) {
 
   function getBackdrop() {
     return { index: backdropIndex, name: backdrops[backdropIndex].name, source: backdrop };
+  }
+
+  // A speech bubble above the sprite: say is a rounded box with a pointer; think is a box with a thought trail.
+  function drawBubble(s) {
+    const cx = W / 2 + s.x;
+    const bottom = H / 2 - s.y - (RADIUS * s.size) / 100 - 8;
+    ctx.save();
+    ctx.font = '14px sans-serif';
+    let text = s.bubble.text;
+    while (ctx.measureText(text).width > 180 && text.length > 1) text = text.slice(0, -2) + '…';
+    const w = Math.max(40, ctx.measureText(text).width + 16);
+    const h = 26;
+    const x = cx - w / 2;
+    const y = bottom - h - (s.bubble.kind === 'think' ? 14 : 8);
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y);
+    ctx.arcTo(x + w, y, x + w, y + h, 8);
+    ctx.arcTo(x + w, y + h, x, y + h, 8);
+    ctx.arcTo(x, y + h, x, y, 8);
+    ctx.arcTo(x, y, x + w, y, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    if (s.bubble.kind === 'think') {
+      for (const [dx, dy, r] of [[-6, 8, 3], [-10, 2, 2]]) {
+        ctx.beginPath();
+        ctx.arc(cx + dx, y + h + dy + 2, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, y + h);
+      ctx.lineTo(cx, y + h + 8);
+      ctx.lineTo(cx + 5, y + h);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#1f2937';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + 8, y + h / 2);
+    ctx.restore();
   }
 
   // urls: Map from asset path to an object URL. Each image loads once; the stage redraws when it is ready.

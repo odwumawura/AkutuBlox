@@ -152,6 +152,20 @@ ScratchBlocks.defineBlocksWithJsonArray([
     args0: [{ type: 'field_dropdown', name: 'BLOCK', options: blockNameOptions }],
     extensions: ['colours_more', 'shape_statement'],
   },
+  { type: 'speech_say', message0: 'say %1', args0: [{ type: 'input_value', name: 'TEXT' }], extensions: ['colours_looks', 'shape_statement'] },
+  {
+    type: 'speech_sayfor',
+    message0: 'say %1 for %2 secs',
+    args0: [{ type: 'input_value', name: 'TEXT' }, { type: 'input_value', name: 'SECS', check: 'Number' }],
+    extensions: ['colours_looks', 'shape_statement'],
+  },
+  { type: 'speech_think', message0: 'think %1', args0: [{ type: 'input_value', name: 'TEXT' }], extensions: ['colours_looks', 'shape_statement'] },
+  {
+    type: 'speech_thinkfor',
+    message0: 'think %1 for %2 secs',
+    args0: [{ type: 'input_value', name: 'TEXT' }, { type: 'input_value', name: 'SECS', check: 'Number' }],
+    extensions: ['colours_looks', 'shape_statement'],
+  },
 ]);
 
 ScratchBlocks.ScratchMsgs.setLocale('en');
@@ -169,6 +183,10 @@ const looksBlocks = () => `
     <block type="looks_nextcostume"/>
     <block type="looks_switchbackdrop"/>
     <block type="looks_nextbackdrop"/>
+    <block type="speech_say">${txt('TEXT', 'Hello!')}</block>
+    <block type="speech_sayfor">${txt('TEXT', 'Hello!')}${num('SECS', 2)}</block>
+    <block type="speech_think">${txt('TEXT', 'Hmm...')}</block>
+    <block type="speech_thinkfor">${txt('TEXT', 'Hmm...')}${num('SECS', 2)}</block>
 `;
 const sensingBlocks = () => `
     <block type="sensing_mousex"/>
@@ -281,6 +299,10 @@ const MAP = [
   { old: 'sound_changevolume', scratch: 'sound_changevolume', numberInputs: { VOLUME: 'VOLUME' }, statements: {}, boolInputs: {} },
   { old: 'myblock_define', scratch: 'myblock_define', hat: true, numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'NAME' },
   { old: 'myblock_call', scratch: 'myblock_call', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'BLOCK' },
+  { old: 'speech_say', scratch: 'speech_say', numberInputs: { TEXT: 'TEXT' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
+  { old: 'speech_sayfor', scratch: 'speech_sayfor', numberInputs: { TEXT: 'TEXT', SECS: 'SECS' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
+  { old: 'speech_think', scratch: 'speech_think', numberInputs: { TEXT: 'TEXT' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
+  { old: 'speech_thinkfor', scratch: 'speech_thinkfor', numberInputs: { TEXT: 'TEXT', SECS: 'SECS' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
   { old: 'data_changevariableby', scratch: 'data_changevariableby', numberInputs: { VALUE: 'VALUE' }, varField: 'VARIABLE', statements: {}, boolInputs: {} },
 ];
 const byOld = Object.fromEntries(MAP.map((m) => [m.old, m]));
