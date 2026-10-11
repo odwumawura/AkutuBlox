@@ -141,6 +141,26 @@ ScratchBlocks.defineBlocksWithJsonArray([
     extensions: ['colours_sounds', 'shape_statement'],
   },
   {
+    type: 'fx_set',
+    message0: 'set %1 effect to %2',
+    args0: [
+      { type: 'field_dropdown', name: 'EFFECT', options: [['color', 'color'], ['ghost', 'ghost'], ['brightness', 'brightness']] },
+      { type: 'input_value', name: 'VALUE', check: 'Number' },
+    ],
+    extensions: ['colours_looks', 'shape_statement'],
+  },
+  {
+    type: 'fx_change',
+    message0: 'change %1 effect by %2',
+    args0: [
+      { type: 'field_dropdown', name: 'EFFECT', options: [['color', 'color'], ['ghost', 'ghost'], ['brightness', 'brightness']] },
+      { type: 'input_value', name: 'VALUE', check: 'Number' },
+    ],
+    extensions: ['colours_looks', 'shape_statement'],
+  },
+  { type: 'fx_clear', message0: 'clear graphic effects', extensions: ['colours_looks', 'shape_statement'] },
+  { type: 'sound_getvolume', message0: 'volume', extensions: ['colours_sounds', 'output_number'] },
+  {
     type: 'myblock_define',
     message0: 'define %1',
     args0: [{ type: 'field_input', name: 'NAME', text: 'my block' }],
@@ -208,6 +228,9 @@ const looksBlocks = () => `
     <block type="looks_hide"/>
     <block type="looks_changesizeby">${num('CHANGE', 10)}</block>
     <block type="looks_setsizeto">${num('SIZE', 100)}</block>
+    <block type="fx_set">${num('VALUE', 25)}</block>
+    <block type="fx_change">${num('VALUE', 25)}</block>
+    <block type="fx_clear"/>
     <block type="looks_switchcostume"/>
     <block type="looks_nextcostume"/>
     <block type="looks_switchbackdrop"/>
@@ -268,6 +291,7 @@ export const TOOLBOX_XML = `
     <block type="sound_stopall"/>
     <block type="sound_setvolume">${num('VOLUME', 100)}</block>
     <block type="sound_changevolume">${num('VOLUME', -10)}</block>
+    <block type="sound_getvolume"/>
   </category>
   <category name="My Blocks" id="myblocks" colour="#FF6680">
     <block type="myblock_define"/>
@@ -342,6 +366,9 @@ const MAP = [
   { old: 'sound_stopall', scratch: 'sound_stopall', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'sound_setvolume', scratch: 'sound_setvolume', numberInputs: { VOLUME: 'VOLUME' }, statements: {}, boolInputs: {} },
   { old: 'sound_changevolume', scratch: 'sound_changevolume', numberInputs: { VOLUME: 'VOLUME' }, statements: {}, boolInputs: {} },
+  { old: 'fx_set', scratch: 'fx_set', numberInputs: { VALUE: 'VALUE' }, statements: {}, boolInputs: {}, dropdown: 'EFFECT' },
+  { old: 'fx_change', scratch: 'fx_change', numberInputs: { VALUE: 'VALUE' }, statements: {}, boolInputs: {}, dropdown: 'EFFECT' },
+  { old: 'fx_clear', scratch: 'fx_clear', numberInputs: {}, statements: {}, boolInputs: {} },
   { old: 'myblock_define', scratch: 'myblock_define', hat: true, numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'NAME' },
   { old: 'myblock_call', scratch: 'myblock_call', numberInputs: {}, statements: {}, boolInputs: {}, dropdown: 'BLOCK' },
   { old: 'speech_say', scratch: 'speech_say', numberInputs: { TEXT: 'TEXT' }, statements: {}, boolInputs: {}, textInputs: ['TEXT'] },
@@ -379,6 +406,7 @@ const REPORTERS = {
   sensing_mousex: [],
   sensing_mousey: [],
   sensing_mousedown: [],
+  sound_getvolume: [],
   operator_add: ['NUM1', 'NUM2'],
   random_pick: ['FROM', 'TO'],
   data_itemoflist: ['INDEX'],

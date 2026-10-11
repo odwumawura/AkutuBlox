@@ -4,7 +4,7 @@
 
 const ROTATION_STYLES = ['all around', 'left-right', "don't rotate"];
 
-let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false, volume: 100, bubble: null };
+let state = { x: 0, y: 0, dir: 90, visible: true, size: 100, costume: 0, costumes: [], rotationStyle: 'all around', draggable: false, volume: 100, bubble: null, effects: { color: 0, ghost: 0, brightness: 0 } };
 let handlers = []; // green-flag scripts
 let eventHandlers = []; // key, click and message scripts: { kind, key | name, fn }
 let customBlocks = new Map(); // My Blocks defined by this sprite: name -> body
@@ -44,6 +44,15 @@ function post(msg) {
 }
 
 // Post the current state and wait until the main thread has drawn it.
+// Graphic effects: colour wraps round (200 is a full turn), ghost is 0 to 100, brightness is -100 to 100.
+const EFFECTS = ['color', 'ghost', 'brightness'];
+function clampEffect(name, v) {
+  const n = Number.isFinite(Number(v)) ? Number(v) : 0;
+  if (name === 'color') return ((n % 200) + 200) % 200;
+  if (name === 'ghost') return Math.max(0, Math.min(100, n));
+  return Math.max(-100, Math.min(100, n));
+}
+
 function publish() {
   return new Promise((resolve) => {
     waiters.push(resolve);
@@ -118,6 +127,25 @@ const api = {
   async setSize(size) {
     state.size = clampSize(Number(size));
     await publish();
+  },
+  // Graphic effects: set, change, clear (an unknown effect name does nothing).
+  async setEffect(name, value) {
+    if (!EFFECTS.includes(name)) return;
+    state.effects = { ...state.effects, [name]: clampEffect(name, value) };
+    await publish();
+  },
+  async changeEffect(name, delta) {
+    if (!EFFECTS.includes(name)) return;
+    state.effects = { ...state.effects, [name]: clampEffect(name, (state.effects?.[name] ?? 0) + Number(delta)) };
+    await publish();
+  },
+  async clearEffects() {
+    state.effects = { color: 0, ghost: 0, brightness: 0 };
+    await publish();
+  },
+  // Sound volume reporter (0 to 100).
+  getVolume() {
+    return state.volume;
   },
   // Costumes: switch by name (an unknown name does nothing, as in Scratch) or step to the next one, wrapping.
   async switchCostume(name) {

@@ -13,6 +13,17 @@ function atCostume(s, idx) {
 const W = 480;
 const H = 360;
 
+const NO_EFFECTS = { color: 0, ghost: 0, brightness: 0 };
+
+// Canvas filter for the colour and brightness effects. Colour shifts the hue (200 is a full turn);
+// brightness scales the light (0 is black, 100 doubles it). Browsers without canvas filters (Safari) show no colour change.
+function effectFilter(fx) {
+  const parts = [];
+  if (fx.color) parts.push(`hue-rotate(${(fx.color * 360) / 200}deg)`);
+  if (fx.brightness) parts.push(`brightness(${Math.max(0, 1 + fx.brightness / 100)})`);
+  return parts.length ? parts.join(' ') : 'none';
+}
+
 export function createStage(canvas, logEl) {
   const ctx = canvas.getContext('2d');
   // id -> { id, name, x, y, dir, costume }
@@ -149,9 +160,12 @@ export function createStage(canvas, logEl) {
     if (bg && bg.complete && bg.naturalWidth) ctx.drawImage(bg, 0, 0, W, H);
     for (const s of sprites.values()) {
       if (!s.visible) continue;
+      const fx = s.effects || NO_EFFECTS;
       // Logical coordinates (origin at centre, y up) -> canvas pixels.
       ctx.save();
       ctx.translate(W / 2 + s.x, H / 2 - s.y);
+      ctx.globalAlpha = 1 - fx.ghost / 100;
+      ctx.filter = effectFilter(fx);
       // Rotation style: all around turns with the direction; left-right only mirrors when facing left; don't rotate stays still.
       const style = s.rotationStyle || 'all around';
       if (style === 'all around') ctx.rotate(((s.dir - 90) * Math.PI) / 180);
@@ -190,7 +204,7 @@ export function createStage(canvas, logEl) {
       const msg = event.data;
       if (msg.type === 'state') {
         const s = sprites.get(id);
-        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size, rotationStyle: msg.state.rotationStyle, draggable: msg.state.draggable, bubble: msg.state.bubble ?? null }, msg.state.costume));
+        if (s) sprites.set(id, atCostume({ ...s, x: msg.state.x, y: msg.state.y, dir: msg.state.dir, visible: msg.state.visible, size: msg.state.size, rotationStyle: msg.state.rotationStyle, draggable: msg.state.draggable, bubble: msg.state.bubble ?? null, effects: msg.state.effects ?? s.effects }, msg.state.costume));
         draw();
         w.postMessage({ type: 'continue' });
       } else if (msg.type === 'ask' && msg.what === 'sound') {
@@ -299,7 +313,7 @@ export function createStage(canvas, logEl) {
     programs = runs;
     for (const [id, start] of starts) {
       const s = sprites.get(id);
-      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable, bubble: null }, start.costumeIndex));
+      if (s) sprites.set(id, atCostume({ ...s, x: start.x, y: start.y, dir: start.dir, visible: start.visible, size: start.size, rotationStyle: start.rotationStyle, draggable: start.draggable, bubble: null, effects: { ...NO_EFFECTS } }, start.costumeIndex));
     }
     showBackdrop(0);
     timerStart = performance.now();
@@ -310,7 +324,7 @@ export function createStage(canvas, logEl) {
       if (!s) continue;
       const w = spawn(id);
       workers.set(id, w);
-      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costume: s.costumeIndex, costumes: (s.costumes || []).map((c) => c.name), rotationStyle: s.rotationStyle, draggable: s.draggable } });
+      w.postMessage({ type: 'run', code, state: { x: s.x, y: s.y, dir: s.dir, visible: s.visible, size: s.size, costume: s.costumeIndex, costumes: (s.costumes || []).map((c) => c.name), rotationStyle: s.rotationStyle, draggable: s.draggable, effects: s.effects || NO_EFFECTS } });
     }
   }
 

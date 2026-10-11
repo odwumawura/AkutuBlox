@@ -103,6 +103,7 @@ SCRIPTS = [
     {"id": "s-20", "x": 1100, "y": 2800, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "event_broadcastwait", "fields": {"MSG": "go"}, "next": {"block": {"type": "stop_this_script", "next": {"block": {"type": "stop_all_scripts"}}}}}}}}]},
     {"id": "s-21", "x": 1100, "y": 3200, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "data_addtolist", "fields": {"LIST": "shopping", "ITEM": "apple"}, "next": {"block": {"type": "data_insertatlist", "fields": {"LIST": "shopping", "ITEM": "first", "INDEX": 1}, "next": {"block": {"type": "data_replaceitemoflist", "fields": {"LIST": "shopping", "INDEX": 2, "ITEM": "pear"}, "next": {"block": {"type": "data_deleteoflist", "fields": {"LIST": "shopping", "INDEX": "all"}}}}}}}}}}}]},
     {"id": "s-22", "x": 1100, "y": 3600, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "motion_changex", "inputs": {"DX": {"block": {"type": "data_lengthoflist", "fields": {"LIST": "shopping"}}}}, "next": {"block": {"type": "motion_changey", "inputs": {"DY": {"block": {"type": "data_itemoflist", "fields": {"LIST": "shopping"}, "inputs": {"INDEX": {"block": {"type": "math_number", "fields": {"NUM": "last"}}}}}}}, "next": {"block": {"type": "control_if", "inputs": {"CONDITION": {"block": {"type": "data_listcontainsitem", "fields": {"LIST": "shopping"}, "inputs": {"ITEM": {"block": {"type": "math_number", "fields": {"NUM": "pear"}}}}}}, "DO": {"block": {"type": "motion_changex", "inputs": {"DX": {"block": {"type": "math_number", "fields": {"NUM": 7}}}}}}}}}}}}}}}]},
+    {"id": "s-23", "x": 1100, "y": 4000, "blocks": [{"type": "event_flag", "inputs": {"DO": {"block": {"type": "fx_set", "fields": {"EFFECT": "ghost"}, "inputs": {"VALUE": {"block": {"type": "math_number", "fields": {"NUM": 50}}}}, "next": {"block": {"type": "fx_change", "fields": {"EFFECT": "color"}, "inputs": {"VALUE": {"block": {"type": "math_number", "fields": {"NUM": 30}}}}, "next": {"block": {"type": "fx_clear", "next": {"block": {"type": "motion_changex", "inputs": {"DX": {"block": {"type": "sound_getvolume"}}}}}}}}}}}}}]},
 ]
 
 failures = []
@@ -162,7 +163,7 @@ with sync_playwright() as p:
     pg.evaluate("(s) => window.__akutu.loadScripts(s)", SCRIPTS)
     pg.wait_for_timeout(300)
     saved = pg.evaluate("() => window.__akutu.scripts()")
-    check(len(saved) == 22, f"twenty-two top-level scripts after load (got {len(saved)})")
+    check(len(saved) == 23, f"twenty-three top-level scripts after load (got {len(saved)})")
     # Every script comes back with the same blocks (ids ignored) and the same position.
     for i, want in enumerate(SCRIPTS):
         got = saved[i] if i < len(saved) else {}

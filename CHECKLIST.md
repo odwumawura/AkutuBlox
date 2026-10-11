@@ -1,6 +1,6 @@
 # AkutuBlox: plan and checklist
 
-Last updated: 2026-10-09. Keep this file current. Each step ends with tests passing and a commit.
+Last updated: 2026-10-11. Keep this file current. Each step ends with tests passing and a commit.
 
 **Legend:** `[x]` done · `[~]` in progress · `[ ]` not started · `[?]` needs your decision
 
@@ -50,7 +50,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **A12. Blocks gap, batch 18:** go to sprite, go to random position, glide, bounce on edge, point towards, x/y/direction reporters.
 - [x] **A13. Blocks gap, batch 19:** broadcast and wait, stop this script / stop all, and key and click events without a green flag (decided: yes).
 - [x] **A14. Blocks gap, batch 20:** lists (schema change, add/delete/item/length/contains).
-- [ ] **A15. Blocks gap, batch 21:** effects (colour, ghost, brightness) and the sound volume reporter.
+- [x] **A15. Blocks gap, batch 21:** effects (colour, ghost, brightness) and the sound volume reporter.
 - [ ] **T1. Student test (first hour), 4 to 6 students:** run after A12. Pass bar in the plan. Facilitator notes and recordings stay out of the repo.
 
 ## Track B: Web builder (Phase 1, mostly done)
@@ -132,3 +132,4 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - 2026-10-11: Blocks batch 19 (A13): broadcast [msg] and wait; stop this script; stop all. Key, click and message scripts run without a green flag: when the project is not running, each sprite keeps an idle worker with its event scripts. Stop respawns them from the current scripts; edits rebuild them after a short delay. Tests: `tests/control2_test.py`; `tests/events_test.py` updated (keys now work after Stop, by design). Round-trip script 20 added. Limit: idle workers do not keep state between runs (a Stop resets to the start positions, as before).
 - 2026-10-11: Full suite run after batch 19: all 27 test files and `tests/smoke.py` pass. Plus `npm run build`.
 - 2026-10-11: Blocks batch 20 (A14, lists): a Lists category with Make a List (scratch-blocks prompt; a browser prompt handler is installed), add, delete (number, last or all), insert, replace, item, length and contains (case-insensitive). Lists are saved as `stage.lists` with `{id, name, items}` (schema updated, and a list definition added). Lists keep their items across green-flag runs and are saved with the project. Tests: `tests/lists_test.py`; round-trip scripts 21 and 22 added. Limits: no list monitor on the stage (the list is not shown on the stage yet), no list rename, and deleting a list in the editor does not remove it from the project yet.
+- 2026-10-11: Blocks batch 21 (A15, effects and volume): set [colour|ghost|brightness] effect to [n], change [effect] effect by [n], clear graphic effects, and a volume reporter. Colour wraps (200 is a full turn), ghost is 0 to 100, brightness -100 to 100. Green flag resets effects; Stop keeps them. Limits: colour and brightness use canvas filters, so Safari shows no change; no fisheye, pixelate, mosaic or whirl; no ghost on the stage backdrop. Tests: `tests/effects_test.py`, round trip script 23, `events_test`, `motion_test`, `motion2_test`, `lists_test`, `npm run build`.
