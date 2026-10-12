@@ -313,8 +313,20 @@ export function pageFile(page) {
   return page.isHome ? 'index.html' : `${page.path}.html`;
 }
 
-export function renderPage(page, pages, { site = true, script = '' } = {}) {
-  const css = [COMPONENT_CSS];
+// The theme's font pair (body, headings) and spacing scale. Font names fall back to system fonts (the fonts are not bundled).
+export const FONT_PAIRS = { 'inter-poppins': ['Inter', 'Poppins'], 'nunito-inter': ['Nunito', 'Inter'], 'poppins-nunito': ['Poppins', 'Nunito'] };
+export const SPACING_PX = { compact: 8, comfortable: 16, spacious: 24 };
+export function themeCss(theme) {
+  const [body, heading] = FONT_PAIRS[theme?.fontPair] || FONT_PAIRS['inter-poppins'];
+  const gap = SPACING_PX[theme?.spacingScale] || SPACING_PX.comfortable;
+  return `body { font-family: "${body}", system-ui, sans-serif; }
+h1, h2, h3, h4 { font-family: "${heading}", system-ui, sans-serif; }
+.akutu-columns { gap: ${gap}px; }
+main > * + * { margin-top: ${gap}px; }`;
+}
+
+export function renderPage(page, pages, { site = true, script = '', theme = null } = {}) {
+  const css = [COMPONENT_CSS, ...(theme ? [themeCss(theme)] : [])];
   page.root.children?.forEach((c) => cssFor(c, css));
   const body = (page.root.children || []).map((c) => htmlFor(c, pages, site)).join('\n');
   return `<!doctype html>
@@ -341,7 +353,8 @@ export function renderStyles(theme) {
   return `:root { --primary: ${primary}; }
 [hidden] { display: none !important; }
 body { margin: 0; font-family: Inter, Nunito, Poppins, system-ui, sans-serif; color: #1d2433; }
-${COMPONENT_CSS}`;
+${COMPONENT_CSS}
+${themeCss(theme)}`;
 }
 
 // ---------- Interactions -> JavaScript ----------
@@ -494,6 +507,6 @@ export function siteFiles(project) {
 }
 
 // The preview runs the same interactions as the exported site, inline.
-export function previewHtml(page, pages, variables = []) {
-  return renderPage(page, pages, { site: false, script: interactionsScript(pages, variables) });
+export function previewHtml(page, pages, variables = [], theme = null) {
+  return renderPage(page, pages, { site: false, script: interactionsScript(pages, variables), theme });
 }

@@ -73,6 +73,7 @@ with sync_playwright() as p:
     site.goto("file://" + os.path.join(out, "index.html"))
     site.wait_for_timeout(400)
     check(not site.locator("#modal1").is_visible(), "pop-up box is hidden on load")
+    site.locator("#open-btn").scroll_into_view_if_needed()  # the button is below the fold in a tall page
     site.click("#open-btn")
     site.wait_for_timeout(300)
     check(site.locator("#modal1").is_visible(), "the button opens the pop-up box in the exported site")

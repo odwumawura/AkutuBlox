@@ -519,6 +519,7 @@ function setTheme(key, value) {
   captureWeb();
   state.project.web.theme = { ...(state.project.web.theme || {}), [key]: value };
   markDirty();
+  previewCurrentPage();
 }
 document.getElementById('theme-font').addEventListener('change', (e) => setTheme('fontPair', e.target.value));
 document.getElementById('theme-spacing').addEventListener('change', (e) => setTheme('spacingScale', e.target.value));
@@ -652,7 +653,7 @@ function buildSiteProject() {
 function previewCurrentPage() {
   const project = buildSiteProject();
   const page = project.web.pages.find((p) => p.id === state.webPageId);
-  document.getElementById('preview-frame').srcdoc = previewHtml(page, project.web.pages, project.web.variables || []);
+  document.getElementById('preview-frame').srcdoc = previewHtml(page, project.web.pages, project.web.variables || [], project.web.theme || null);
 }
 
 document.getElementById('preview').addEventListener('click', previewCurrentPage);
