@@ -568,14 +568,36 @@ function chainToXml(json) {
   return json?.disabled && xml ? markOffXml(xml) : xml;
 }
 
-// Shows a disabled block faded, and records the flag. Fires a change so the project is marked as edited and the programs rebuild.
-function setBlockOff(block, off, fire = true) {
+// Shows a disabled block faded and sets its flag. With fire, the change is recorded for Undo / Redo and
+// fires a change so the project is marked as edited.
+function applyBlockOff(block, off) {
   block.akutuDisabled = off;
   const root = block.getSvgRoot?.();
   if (root) root.style.opacity = off ? '0.4' : '';
-  if (fire && ScratchBlocks.Events.BlockChange) {
-    block.workspace.fireChangeListener(new ScratchBlocks.Events.BlockChange(block, 'disabled', null, String(!off), String(off)));
-  }
+}
+function setBlockOff(block, off, fire = true) {
+  const before = !!block.akutuDisabled;
+  applyBlockOff(block, off);
+  if (!fire) return;
+  const ws = block.workspace;
+  const id = block.id;
+  // Undo / Redo call run(); it re-applies the flag and fires a non-recording change so the programs rebuild.
+  const change = (recordUndo, run) => ({
+    type: 'akutu_disabled',
+    isUiEvent: false,
+    isNull: () => false,
+    isBlank: false,
+    recordUndo,
+    group: '',
+    workspaceId: ws.id,
+    run,
+  });
+  ws.fireChangeListener(change(true, (redo) => {
+    const target = ws.getBlockById(id);
+    if (!target) return;
+    applyBlockOff(target, redo ? off : before);
+    ws.fireChangeListener(change(false, () => {}));
+  }));
 }
 
 function reporterXml(e, inputName, textShadow = false) {

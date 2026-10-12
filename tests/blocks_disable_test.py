@@ -1,4 +1,4 @@
-"""Blocks, P6: disable and enable a block. A disabled block does nothing when the project runs (the blocks below it still do),
+"""Blocks, P6: disable and enable a block, with Undo and Redo. A disabled block does nothing when the project runs (the blocks below it still do),
    a disabled hat turns off its whole script, and the state is kept in the saved project.
    Test script: when flag clicked > move 40 > wait 1 > move 40. Final x: 80 when all is on, 40 when the first move is off, 0 when the hat is off.
    python3 tests/blocks_disable_test.py   (dev server on :5173)
@@ -64,6 +64,14 @@ with sync_playwright() as p:
     check(disabled_count(pg) == 1, "the saved project marks one block as disabled")
     check(x_after_run(pg) == 40, "first move disabled: only the second move runs (x = 40)")
 
+    # Undo puts the first move back on, and Redo turns it off again.
+    pg.click("#undo"); pg.wait_for_timeout(300)
+    check(disabled_count(pg) == 0, "Undo of disable clears the flag")
+    check(x_after_run(pg) == 80, "Undo of disable: both moves run again (x = 80)")
+    pg.click("#redo"); pg.wait_for_timeout(300)
+    check(disabled_count(pg) == 1, "Redo of disable sets the flag again")
+    check(x_after_run(pg) == 40, "Redo of disable: first move off again (x = 40)")
+
     # Enable it again.
     # The disabled block is the faded one.
     pg.locator("#blocklyDiv g[style*='opacity']").get_by_text("move", exact=True).first.click(button="right")
@@ -72,6 +80,14 @@ with sync_playwright() as p:
     pg.wait_for_timeout(300)
     check(disabled_count(pg) == 0, "enable clears the flag in the saved project")
     check(x_after_run(pg) == 80, "enabled again: both moves run (x = 80)")
+
+    # Undo of enable turns the move off again; Redo turns it back on.
+    pg.click("#undo"); pg.wait_for_timeout(300)
+    check(disabled_count(pg) == 1, "Undo of enable sets the flag again")
+    check(x_after_run(pg) == 40, "Undo of enable: first move off again (x = 40)")
+    pg.click("#redo"); pg.wait_for_timeout(300)
+    check(disabled_count(pg) == 0, "Redo of enable clears the flag")
+    check(x_after_run(pg) == 80, "Redo of enable: both moves run (x = 80)")
 
     # Disable the hat: the whole script does nothing.
     menu(pg, "when", "Disable block")
