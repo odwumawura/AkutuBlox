@@ -792,6 +792,10 @@ async function openFile(file) {
 // ---------- Wiring ----------
 el.tabs.blocks.addEventListener('click', () => switchMode('blocks'));
 
+// Undo and redo for the blocks (scratch-blocks keeps the history; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y also work).
+document.getElementById('undo').addEventListener('click', () => blocksEditor.ws.undo(false));
+document.getElementById('redo').addEventListener('click', () => blocksEditor.ws.undo(true));
+
 // ---- Accessibility settings (P3): text size and high contrast. Remembered on this device. ----
 const ACCESS_KEY = 'akutu-access';
 function readAccess() {
