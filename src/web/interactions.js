@@ -55,10 +55,22 @@ const SPEC = {
       params: { name: 'NAME', op: 'OP', value: 'VALUE' },
       branches: { then: 'THEN', else: 'ELSE' },
     },
+    // "if" with a condition block plugged in. The old "if variable ..." stays for existing files.
+    ifcond: { cond: true, parts: [], params: {}, branches: { then: 'THEN', else: 'ELSE' } },
     wait: { parts: ['wait', { field: 'SECONDS', number: 1 }, 'seconds'], params: { seconds: 'SECONDS' } },
   },
 };
 const NUMBER_FIELDS = new Set(['SECONDS', 'DX', 'DY', 'BY']);
+
+// Conditions: yes-or-no blocks that plug into "if". Stored as a small tree (condFromBlock).
+const CONDITIONS = {
+  compare: { parts: [{ field: 'NAME', menu: 'variable' }, { field: 'OP', menu: 'op' }, { field: 'VALUE', text: '0' }] },
+  checked: { parts: [{ field: 'TARGET', menu: 'checkbox' }, 'is ticked'], target: 'TARGET' },
+  and: { join: 'and' },
+  or: { join: 'or' },
+  not: { join: 'not' },
+};
+const COND_BY_BLOCK = Object.fromEntries(Object.keys(CONDITIONS).map((c) => [`cond_${c}`, c]));
 
 const TRIGGER_BY_BLOCK = Object.fromEntries(Object.keys(SPEC.triggers).map((t) => [`trigger_${t}`, t]));
 const ACTION_BY_BLOCK = Object.fromEntries(Object.keys(SPEC.actions).map((a) => [`action_${a}`, a]));
@@ -89,7 +101,8 @@ export function registerInteractionBlocks() {
     const colour = kind === 'trigger' ? TRIGGER_COLOR : spec.branches ? LOGIC_COLOR : ACTION_COLOR;
     Blockly.Blocks[`${kind}_${name}`] = {
       init() {
-        const row = this.appendDummyInput();
+        if (spec.cond) this.appendValueInput('COND').setCheck('Boolean').appendField('if');
+        const row = spec.parts.length ? this.appendDummyInput() : null;
         for (const part of spec.parts) {
           if (typeof part === 'string') row.appendField(part);
           else if (part.menu) row.appendField(new Blockly.FieldDropdown(menuFor(part.menu)), part.field);
@@ -112,6 +125,28 @@ export function registerInteractionBlocks() {
   };
   for (const [name, spec] of Object.entries(SPEC.triggers)) add('trigger', name, spec);
   for (const [name, spec] of Object.entries(SPEC.actions)) add('action', name, spec);
+  for (const [name, spec] of Object.entries(CONDITIONS)) {
+    Blockly.Blocks[`cond_${name}`] = {
+      init() {
+        this.setOutput(true, 'Boolean');
+        if (spec.parts) {
+          const row = this.appendDummyInput();
+          for (const part of spec.parts) {
+            if (typeof part === 'string') row.appendField(part);
+            else if (part.menu) row.appendField(new Blockly.FieldDropdown(menuFor(part.menu)), part.field);
+            else row.appendField(new Blockly.FieldTextInput(part.text), part.field);
+          }
+        } else if (name === 'not') {
+          this.appendValueInput('A').setCheck('Boolean').appendField('not');
+        } else {
+          this.appendValueInput('A').setCheck('Boolean');
+          this.appendValueInput('B').setCheck('Boolean').appendField(spec.join);
+        }
+        this.setColour(LOGIC_COLOR);
+        this.setTooltip('A yes or no question. Plug it into an "if" block.');
+      },
+    };
+  }
 }
 
 const blocksOf = (kind, names) => names.map((n) => ({ kind: 'block', type: `${kind}_${n}` }));
@@ -121,7 +156,8 @@ export const INTERACTION_TOOLBOX = {
     { kind: 'category', name: 'When', colour: TRIGGER_COLOR, contents: blocksOf('trigger', Object.keys(SPEC.triggers)) },
     { kind: 'category', name: 'Show & hide', colour: ACTION_COLOR, contents: blocksOf('action', ['show', 'hide', 'toggle', 'fadeIn', 'fadeOut', 'move']) },
     { kind: 'category', name: 'Change', colour: ACTION_COLOR, contents: blocksOf('action', ['setText', 'setTextColor', 'setBackground', 'setImage']) },
-    { kind: 'category', name: 'Decide', colour: LOGIC_COLOR, contents: blocksOf('action', ['if']) },
+    { kind: 'category', name: 'Decide', colour: LOGIC_COLOR, contents: blocksOf('action', ['if', 'ifcond']) },
+    { kind: 'category', name: 'Conditions', colour: LOGIC_COLOR, contents: Object.keys(CONDITIONS).map((n) => ({ kind: 'block', type: `cond_${n}` })) },
     { kind: 'category', name: 'Forms & sound', colour: ACTION_COLOR, contents: blocksOf('action', ['readField', 'clearForm', 'showValidation', 'playSound', 'openLink', 'goToPage']) },
     { kind: 'category', name: 'Variables & time', colour: VARIABLE_COLOR, contents: blocksOf('action', ['setVariable', 'changeVariable', 'showVariable', 'startTimer', 'stopTimer', 'resetTimer', 'wait']) },
   ],
@@ -138,6 +174,17 @@ function paramsFromBlock(block, params) {
   return out;
 }
 
+// Reads a yes-or-no block tree into the model form. An empty socket counts as false.
+function condFromBlock(b) {
+  if (!b) return { kind: 'none' };
+  const type = COND_BY_BLOCK[b.type];
+  if (type === 'compare') return { kind: 'compare', name: String(b.getFieldValue('NAME') ?? ''), op: String(b.getFieldValue('OP') ?? 'equals'), value: String(b.getFieldValue('VALUE') ?? '') };
+  if (type === 'checked') return { kind: 'checked', targetId: String(b.getFieldValue('TARGET') ?? '') };
+  if (type === 'not') return { kind: 'not', item: condFromBlock(b.getInputTargetBlock('A')) };
+  if (type === 'and' || type === 'or') return { kind: type, items: [condFromBlock(b.getInputTargetBlock('A')), condFromBlock(b.getInputTargetBlock('B'))] };
+  return { kind: 'none' };
+}
+
 // Reads a chain of action blocks (following "next") into a list, recursing into if/else branches.
 function actionsFromChain(first) {
   const out = [];
@@ -150,6 +197,7 @@ function actionsFromChain(first) {
       params.then = actionsFromChain(b.getInputTargetBlock(spec.branches.then));
       params.else = actionsFromChain(b.getInputTargetBlock(spec.branches.else));
     }
+    if (spec.cond) params.cond = condFromBlock(b.getInputTargetBlock('COND'));
     out.push({ type, params });
   }
   return out;
@@ -182,6 +230,27 @@ function fieldsFor(spec, params, targetId) {
   return fields;
 }
 
+// Model form -> block JSON for a yes-or-no tree (null when empty).
+function condJsonFrom(c) {
+  if (!c || c.kind === 'none') return null;
+  if (c.kind === 'compare') return { type: 'cond_compare', fields: { NAME: c.name ?? '', OP: c.op ?? 'equals', VALUE: String(c.value ?? '') } };
+  if (c.kind === 'checked') return { type: 'cond_checked', fields: { TARGET: c.targetId ?? '' } };
+  if (c.kind === 'not') {
+    const a = condJsonFrom(c.item);
+    return { type: 'cond_not', inputs: a ? { A: { block: a } } : {} };
+  }
+  if (c.kind === 'and' || c.kind === 'or') {
+    const [x, y] = c.items || [];
+    const inputs = {};
+    const a = condJsonFrom(x);
+    const b = condJsonFrom(y);
+    if (a) inputs.A = { block: a };
+    if (b) inputs.B = { block: b };
+    return { type: `cond_${c.kind}`, inputs };
+  }
+  return null;
+}
+
 // Builds the block JSON for a list of actions, chained with "next". Returns undefined for an empty list.
 function chainJson(actions) {
   const blocks = (actions || []).map((a) => {
@@ -190,6 +259,8 @@ function chainJson(actions) {
     const json = { type: `action_${a.type}`, fields: fieldsFor(spec, a.params, a.params?.targetId) };
     if (spec.branches) {
       json.inputs = {};
+      const cond = condJsonFrom(a.params?.cond);
+      if (cond) json.inputs.COND = { block: cond };
       const then = chainJson(a.params?.then);
       const otherwise = chainJson(a.params?.else);
       if (then) json.inputs[spec.branches.then] = { block: then };

@@ -503,6 +503,19 @@ editor.on('component:selected', (c) => {
   const isVideo = c.get('tagName') === 'iframe';
   document.getElementById('el-youtube-row').hidden = !isVideo;
   document.getElementById('el-youtube').value = c.getAttributes()['data-youtube-id'] || '';
+  document.getElementById('el-var-row').hidden = !c.getAttributes()['data-kind'];
+  document.getElementById('el-var').value = c.getAttributes()['data-show'] || '';
+});
+
+// Counter and timer display: the variable whose value is shown.
+document.getElementById('el-var').addEventListener('change', (e) => {
+  const c = editor.getSelected();
+  if (!c || !c.getAttributes()['data-kind']) return;
+  const name = e.target.value.trim();
+  if (name && !/^[A-Za-z_][A-Za-z0-9_]{0,39}$/.test(name)) return alert('Variable names start with a letter or _, use only letters, numbers and _, and are up to 40 characters.');
+  c.addAttributes({ 'data-show': name });
+  markDirty();
+  previewCurrentPage();
 });
 
 // Video: paste a YouTube link or the 11-character ID. Only the privacy-enhanced embed is used.

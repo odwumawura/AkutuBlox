@@ -24,9 +24,10 @@ export const STYLE_OPTIONS = {
 };
 
 // Components with a CSS class (the class does the layout; no inline styles, so the CSP holds).
-const EXTRA_CLASSES = { columns: ['akutu-columns'], modal: ['akutu-modal'], youtube: ['akutu-video'] };
+const EXTRA_CLASSES = { columns: ['akutu-columns'], modal: ['akutu-modal'], youtube: ['akutu-video'], counter: ['akutu-counter'], timerDisplay: ['akutu-timer'] };
 export const COMPONENT_CSS = `.akutu-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .akutu-modal { border: 1px solid #cbd5e1; border-radius: 12px; padding: 24px; background: #fff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2); }
+.akutu-counter, .akutu-timer { font-weight: 700; font-variant-numeric: tabular-nums; }
 .akutu-video { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
 .akutu-video-note { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; border: 2px dashed #94a3b8; border-radius: 8px; color: #475569; text-align: center; padding: 8px; }
 textarea, select { font: inherit; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
@@ -120,6 +121,7 @@ function treeFromComponentInner(comp) {
     node.children = comp.components().filter((c) => c.get('type') !== 'textnode').map(treeFromComponent);
     return node;
   }
+  if (tag === 'span' && attrs['data-kind']) return Object.assign(node, { type: attrs['data-kind'] === 'timer' ? 'timerDisplay' : 'counter', props: { name: attrs['data-show'] || '' } });
   if (tag === 'textarea') return Object.assign(node, { type: 'textArea', props: { placeholder: attrs.placeholder || '' } });
   if (tag === 'select') return Object.assign(node, { type: 'dropdown', props: { options: comp.components().map((o) => textOf(o)) } });
   if (tag === 'ul') return Object.assign(node, { type: 'list', props: { items: comp.components().map((li) => textOf(li)) } });
@@ -178,6 +180,9 @@ function editorJsonFor(node) {
       return { ...base, tagName: 'form', components: (node.children || []).map(editorJsonFor) };
     case 'section':
       return { ...base, tagName: 'section', components: (node.children || []).map(editorJsonFor) };
+    case 'counter':
+    case 'timerDisplay':
+      return { ...base, tagName: 'span', attributes: { ...attributes, 'data-kind': node.type === 'timerDisplay' ? 'timer' : 'counter', 'data-show': node.props?.name || '' }, components: [{ type: 'textnode', content: '0' }] };
     case 'textArea':
       return { ...base, tagName: 'textarea', attributes: { ...attributes, placeholder: node.props?.placeholder || '' }, components: [] };
     case 'dropdown':
@@ -221,6 +226,8 @@ export const PALETTE = [
   { id: 'columns', label: 'Two columns', content: { tagName: 'div', classes: ['akutu-columns'], components: [{ tagName: 'p', components: [{ type: 'textnode', content: 'Left column' }] }, { tagName: 'p', components: [{ type: 'textnode', content: 'Right column' }] }] } },
   { id: 'navigation', label: 'Navigation', content: { tagName: 'nav', components: [{ tagName: 'a', attributes: { href: '#' }, components: [{ type: 'textnode', content: 'Home' }] }] } },
   { id: 'youtube', label: 'Video (YouTube)', content: { tagName: 'iframe', classes: ['akutu-video'], attributes: { 'data-youtube-id': '', title: 'YouTube video' } } },
+  { id: 'counter', label: 'Counter', content: { tagName: 'span', classes: ['akutu-counter'], attributes: { 'data-kind': 'counter', 'data-show': '' }, components: [{ type: 'textnode', content: '0' }] } },
+  { id: 'timerDisplay', label: 'Timer display', content: { tagName: 'span', classes: ['akutu-timer'], attributes: { 'data-kind': 'timer', 'data-show': '' }, components: [{ type: 'textnode', content: '0' }] } },
   { id: 'modal', label: 'Pop-up box', content: { tagName: 'div', classes: ['akutu-modal'], attributes: { role: 'dialog' }, components: [{ tagName: 'p', components: [{ type: 'textnode', content: 'Pop-up text' }] }] } },
 ];
 
@@ -272,6 +279,13 @@ function htmlFor(node, pages, site = true) {
       return `<div${id} class="akutu-modal" role="dialog" aria-modal="true"${hidden}>${kids()}</div>`;
     case 'navigation':
       return `<nav${id}${hidden}>${kids()}</nav>`;
+    case 'counter':
+    case 'timerDisplay': {
+      const timer = node.type === 'timerDisplay';
+      const name = VAR_NAME.test(node.props?.name || '') ? node.props.name : '';
+      const show = name ? ` data-show="${esc(name)}"${timer ? ' data-suffix=" s"' : ''}` : '';
+      return `<span${id} class="${timer ? 'akutu-timer' : 'akutu-counter'}"${show}${hidden}>${timer ? '0 s' : '0'}</span>`;
+    }
     case 'textArea':
       return `<textarea${id}${hidden} placeholder="${esc(node.props?.placeholder)}"></textarea>`;
     case 'dropdown':
@@ -331,6 +345,19 @@ const el = (id) => `document.getElementById(${JSON.stringify(id)})`;
 const num = (v) => Number(v) || 0;
 
 // Each action compiles to statements. Handlers are async, so "wait" can pause a sequence.
+// Code for a yes-or-no tree. Unknown or empty parts are false, so a half-built condition does nothing.
+function condJs(c) {
+  if (!c) return 'false';
+  switch (c.kind) {
+    case 'compare': return VAR_NAME.test(c.name || '') ? `cmp(vars[${JSON.stringify(c.name)}], ${JSON.stringify(String(c.op || 'equals'))}, ${JSON.stringify(String(c.value ?? ''))})` : 'false';
+    case 'checked': return safeId(c.targetId) ? `(function () { const x = ${el(c.targetId)}; return !!(x && x.checked); })()` : 'false';
+    case 'not': return `!(${condJs(c.item)})`;
+    case 'and': return `(${condJs(c.items?.[0])} && ${condJs(c.items?.[1])})`;
+    case 'or': return `(${condJs(c.items?.[0])} || ${condJs(c.items?.[1])})`;
+    default: return 'false';
+  }
+}
+
 const ACTION_JS = {
   show: (a) => `{ const x = ${el(a.params.targetId)}; if (x) x.hidden = false; }`,
   hide: (a) => `{ const x = ${el(a.params.targetId)}; if (x) x.hidden = true; }`,
@@ -356,6 +383,7 @@ const ACTION_JS = {
   if: (a, pages) => (VAR_NAME.test(a.params.name || '')
     ? `if (cmp(vars[${JSON.stringify(a.params.name)}], ${JSON.stringify(String(a.params.op || 'equals'))}, ${JSON.stringify(String(a.params.value ?? ''))})) {\n      ${actionsJs(a.params.then || [], pages)}\n    } else {\n      ${actionsJs(a.params.else || [], pages)}\n    }`
     : ''),
+  ifcond: (a, pages) => `if (${condJs(a.params.cond)}) {\n      ${actionsJs(a.params.then || [], pages)}\n    } else {\n      ${actionsJs(a.params.else || [], pages)}\n    }`,
   startTimer: (a) => (VAR_NAME.test(a.params.name || '') ? `startTimer(${JSON.stringify(a.params.name)});` : ''),
   stopTimer: (a) => (VAR_NAME.test(a.params.name || '') ? `stopTimer(${JSON.stringify(a.params.name)});` : ''),
   resetTimer: (a) => (VAR_NAME.test(a.params.name || '') ? `resetTimer(${JSON.stringify(a.params.name)});` : ''),
@@ -432,11 +460,14 @@ export function interactionsScript(pages, variables = []) {
     'function resetTimer(n) { stopTimer(n); setVar(n, 0); }',
     "function visitsBefore() { try { return JSON.parse(sessionStorage.getItem('akutu-visits') || '[]'); } catch (e) { return []; } }",
     "function recordVisit(id) { try { const v = visitsBefore(); if (v.indexOf(id) === -1) v.push(id); sessionStorage.setItem('akutu-visits', JSON.stringify(v)); } catch (e) {} }",
+    'function showVars(name) { document.querySelectorAll("[data-show]").forEach(function (e) { if (!name || e.dataset.show === name) e.textContent = String(vars[e.dataset.show] ?? 0) + (e.dataset.suffix || ""); }); }',
     'function setVar(name, value) {',
     '  vars[name] = value;',
+    '  showVars(name);',
     '  watchers.forEach(function (w) { if (w.name === name && String(value) === w.value) w.run(); });',
     '}',
     "document.addEventListener('DOMContentLoaded', function () {",
+    "  showVars(null);",
     "  const before = visitsBefore();",
     "  recordVisit(document.body.dataset.page);",
     blocks.filter(Boolean).join('\n'),

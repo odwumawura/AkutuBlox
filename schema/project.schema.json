@@ -659,6 +659,7 @@
                   "changeVariable",
                   "showVariable",
                   "if",
+                  "ifcond",
                   "compare",
                   "and",
                   "or",

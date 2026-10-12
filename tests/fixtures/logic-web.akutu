@@ -1,0 +1,227 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "Fixture site",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Fixture home",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "h1",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Logic test"
+              },
+              "style": {}
+            },
+            {
+              "id": "cb",
+              "type": "checkbox",
+              "props": {
+                "label": "I agree"
+              },
+              "style": {}
+            },
+            {
+              "id": "plus",
+              "type": "button",
+              "props": {
+                "text": "Plus one"
+              },
+              "style": {}
+            },
+            {
+              "id": "check",
+              "type": "button",
+              "props": {
+                "text": "Check"
+              },
+              "style": {}
+            },
+            {
+              "id": "start",
+              "type": "button",
+              "props": {
+                "text": "Start clock"
+              },
+              "style": {}
+            },
+            {
+              "id": "score",
+              "type": "counter",
+              "props": {
+                "name": "score"
+              },
+              "style": {}
+            },
+            {
+              "id": "clock",
+              "type": "timerDisplay",
+              "props": {
+                "name": "secs"
+              },
+              "style": {}
+            },
+            {
+              "id": "res",
+              "type": "paragraph",
+              "props": {
+                "text": "Waiting"
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i1",
+            "targetId": "plus",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "changeVariable",
+                "params": {
+                  "name": "score",
+                  "by": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "i2",
+            "targetId": "check",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "ifcond",
+                "params": {
+                  "cond": {
+                    "kind": "and",
+                    "items": [
+                      {
+                        "kind": "checked",
+                        "targetId": "cb"
+                      },
+                      {
+                        "kind": "or",
+                        "items": [
+                          {
+                            "kind": "compare",
+                            "name": "score",
+                            "op": "equals",
+                            "value": "1"
+                          },
+                          {
+                            "kind": "compare",
+                            "name": "score",
+                            "op": "equals",
+                            "value": "2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "then": [
+                    {
+                      "type": "setText",
+                      "params": {
+                        "targetId": "res",
+                        "text": "Passed"
+                      }
+                    }
+                  ],
+                  "else": [
+                    {
+                      "type": "setText",
+                      "params": {
+                        "targetId": "res",
+                        "text": "Not yet"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "i3",
+            "targetId": "start",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "startTimer",
+                "params": {
+                  "name": "secs"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "about",
+        "name": "About",
+        "path": "about",
+        "title": "About",
+        "isHome": false,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "ah",
+              "type": "heading",
+              "props": {
+                "level": 2,
+                "text": "About page text"
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": []
+      }
+    ],
+    "variables": [
+      {
+        "id": "v-score",
+        "name": "score",
+        "value": "0"
+      },
+      {
+        "id": "v-secs",
+        "name": "secs",
+        "value": "0"
+      }
+    ]
+  }
+}
