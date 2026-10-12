@@ -258,7 +258,7 @@ function htmlFor(node, pages, site = true) {
       return `<button type="${node.props?.submit ? 'submit' : 'button'}"${id}${hidden}>${esc(node.props.text)}</button>`;
     case 'link': {
       const page = pages.find((p) => p.id === node.props.pageId);
-      const href = page ? `${page.path}.html` : node.props.href || '#';
+      const href = page ? pageFile(page) : node.props.href || '#';
       return `<a${id} href="${esc(href)}"${hidden}>${esc(node.props.text)}</a>`;
     }
     case 'textInput':
@@ -306,6 +306,11 @@ function htmlFor(node, pages, site = true) {
 
 // Exported sites load only their own files. Images may come from https or be uploaded as data: URLs.
 export const SITE_CSP = "default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; object-src 'none'; frame-src https://www.youtube-nocookie.com; base-uri 'none'; form-action 'self'";
+
+// The file a page is written to. The home page is always index.html.
+export function pageFile(page) {
+  return page.isHome ? 'index.html' : `${page.path}.html`;
+}
 
 export function renderPage(page, pages, { site = true, script = '' } = {}) {
   const css = [COMPONENT_CSS];
@@ -367,7 +372,7 @@ const ACTION_JS = {
   setBackground: (a) => (COLOR_OK(a.params.color) ? `{ const x = ${el(a.params.targetId)}; if (x) x.style.backgroundColor = ${JSON.stringify(a.params.color)}; }` : ''),
   goToPage: (a, pages) => {
     const p = pages.find((pg) => pg.id === a.params.pageId);
-    return p ? `window.location.href = ${JSON.stringify(p.path + '.html')};` : '';
+    return p ? `window.location.href = ${JSON.stringify(pageFile(p))};` : '';
   },
   openLink: (a) => (safeUrl(a.params.url) && /^https?:/.test(a.params.url) ? `window.open(${JSON.stringify(a.params.url)}, '_blank', 'noopener');` : ''),
   fadeIn: (a) => `{ const x = ${el(a.params.targetId)}; if (x) { x.style.transition = 'opacity 0.4s'; x.style.opacity = '0'; x.hidden = false; x.offsetHeight; x.style.opacity = '1'; await sleep(400); } }`,
@@ -481,7 +486,7 @@ export function interactionsScript(pages, variables = []) {
 export function siteFiles(project) {
   const { pages, theme, variables } = project.web;
   const files = {};
-  for (const page of pages) files[`${page.path}.html`] = renderPage(page, pages);
+  for (const page of pages) files[pageFile(page)] = renderPage(page, pages);
   files['styles.css'] = renderStyles(theme) + pages.flatMap((p) => { const c = []; p.root.children?.forEach((n) => cssFor(n, c)); return c; }).join('\n') + '\n';
   files['script.js'] = interactionsScript(pages, variables || []);
   return files;

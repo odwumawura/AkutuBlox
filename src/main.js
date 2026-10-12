@@ -21,7 +21,7 @@ import {
   readProjectFile,
   readImageUpload,
 } from './project.js';
-import { siteFiles, previewHtml, treeFromEditor, PALETTE, HIDDEN_CLASS, setComponentHidden, isComponentHidden, STYLE_CSS, STYLE_OPTIONS, safeStyleValue, COMPONENT_CSS, youtubeIdFrom } from './web/model.js';
+import { siteFiles, previewHtml, pageFile, treeFromEditor, PALETTE, HIDDEN_CLASS, setComponentHidden, isComponentHidden, STYLE_CSS, STYLE_OPTIONS, safeStyleValue, COMPONENT_CSS, youtubeIdFrom } from './web/model.js';
 import {
   INTERACTION_TOOLBOX,
   registerInteractionBlocks,
@@ -377,7 +377,7 @@ function fillPageSelect() {
   for (const p of state.project.web.pages) {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = `${p.name} (${p.path}.html)`;
+    opt.textContent = `${p.name} (${pageFile(p)})`;
     el.pageSelect.appendChild(opt);
   }
   el.pageSelect.value = state.webPageId;
@@ -457,7 +457,31 @@ function deleteWebPage() {
   previewCurrentPage();
 }
 
+// Set the home page: the site's index.html. The old home keeps its content under a new path, so no two pages share one file.
+function setHomePage() {
+  captureWeb();
+  const pages = state.project.web.pages;
+  const page = pages.find((p) => p.id === state.webPageId);
+  if (page.isHome) return alert(`${page.name} is already the home page.`);
+  if (!confirm(`Make ${page.name} the home page? Visitors will land on it first.`)) return;
+  for (const p of pages) {
+    if (!p.isHome) continue;
+    p.isHome = false;
+    if (p.path === 'index') {
+      let n = pages.length + 1;
+      while (pages.some((q) => q.path === `page-${n}`)) n++;
+      p.path = `page-${n}`;
+    }
+  }
+  page.isHome = true;
+  page.path = 'index';
+  markDirty();
+  fillPageSelect();
+  previewCurrentPage();
+}
+
 document.getElementById('rename-page').addEventListener('click', renameWebPage);
+document.getElementById('set-home').addEventListener('click', setHomePage);
 document.getElementById('delete-page').addEventListener('click', deleteWebPage);
 
 // Theme: stored in the file now; the look is applied in a later step (B5).
