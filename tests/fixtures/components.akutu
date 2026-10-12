@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "0.1",
+  "mode": "web",
+  "meta": {
+    "name": "Fixture site",
+    "createdAt": "2026-10-10T09:00:00Z",
+    "updatedAt": "2026-10-10T09:00:00Z",
+    "appVersion": "0.0.1"
+  },
+  "web": {
+    "theme": {
+      "primaryColor": "#0F766E",
+      "fontPair": "inter-poppins",
+      "spacingScale": "comfortable"
+    },
+    "pages": [
+      {
+        "id": "home",
+        "name": "Home",
+        "path": "index",
+        "title": "Fixture home",
+        "isHome": true,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "h1",
+              "type": "heading",
+              "props": {
+                "level": 1,
+                "text": "Components test"
+              },
+              "style": {}
+            },
+            {
+              "id": "cols",
+              "type": "columns",
+              "props": {},
+              "style": {},
+              "children": [
+                {
+                  "id": "pl",
+                  "type": "paragraph",
+                  "props": {
+                    "text": "Left"
+                  },
+                  "style": {}
+                },
+                {
+                  "id": "pr",
+                  "type": "paragraph",
+                  "props": {
+                    "text": "Right"
+                  },
+                  "style": {}
+                }
+              ]
+            },
+            {
+              "id": "dd",
+              "type": "dropdown",
+              "props": {
+                "options": [
+                  "Red",
+                  "Blue"
+                ]
+              },
+              "style": {}
+            },
+            {
+              "id": "ls",
+              "type": "list",
+              "props": {
+                "items": [
+                  "one",
+                  "two"
+                ]
+              },
+              "style": {}
+            },
+            {
+              "id": "ta",
+              "type": "textArea",
+              "props": {
+                "placeholder": "Write here"
+              },
+              "style": {}
+            },
+            {
+              "id": "nv",
+              "type": "navigation",
+              "props": {},
+              "style": {},
+              "children": [
+                {
+                  "id": "nl",
+                  "type": "link",
+                  "props": {
+                    "text": "Other page",
+                    "pageId": "about"
+                  },
+                  "style": {}
+                }
+              ]
+            },
+            {
+              "id": "yt",
+              "type": "youtube",
+              "props": {
+                "youtubeId": "dQw4w9WgXcQ"
+              },
+              "style": {}
+            },
+            {
+              "id": "yt-bad",
+              "type": "youtube",
+              "props": {
+                "youtubeId": "<script>alert(1)</script>"
+              },
+              "style": {}
+            },
+            {
+              "id": "open-btn",
+              "type": "button",
+              "props": {
+                "text": "Open"
+              },
+              "style": {}
+            },
+            {
+              "id": "modal1",
+              "type": "modal",
+              "props": {
+                "hidden": true
+              },
+              "style": {},
+              "children": [
+                {
+                  "id": "mp",
+                  "type": "paragraph",
+                  "props": {
+                    "text": "Pop-up text"
+                  },
+                  "style": {}
+                }
+              ]
+            }
+          ]
+        },
+        "interactions": [
+          {
+            "id": "i-open",
+            "targetId": "open-btn",
+            "trigger": {
+              "type": "clicked"
+            },
+            "actions": [
+              {
+                "type": "show",
+                "params": {
+                  "targetId": "modal1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "about",
+        "name": "About",
+        "path": "about",
+        "title": "About",
+        "isHome": false,
+        "root": {
+          "id": "root",
+          "type": "section",
+          "props": {},
+          "style": {},
+          "children": [
+            {
+              "id": "ah",
+              "type": "heading",
+              "props": {
+                "level": 2,
+                "text": "About page text"
+              },
+              "style": {}
+            }
+          ]
+        },
+        "interactions": []
+      }
+    ]
+  }
+}

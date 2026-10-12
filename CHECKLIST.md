@@ -58,13 +58,26 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - [x] **B1.** Remove the dark strip at the right edge of the component palette. (Confirmed by you.)
 - [x] **B2.** Page rename and delete. Rename keeps the file name. Delete is refused for the home page, the last page, and any page another page links to or acts on. Set-home is not built yet.
 - [x] **B3.** Hidden elements can be selected on the canvas (show-hidden toggle). Hidden elements show with a dashed outline; the toggle hides them in the editor view only. A new Hidden checkbox in the element panel sets this (before, it could only come from a file).
-- [ ] **B4.** Style editing: a replacement for GrapesJS's Style Manager, limited to the schema's fixed style set (colors, spacing, fonts, sizes, borders). No free-form CSS.
+- [x] **B4.** Style editing: a replacement for GrapesJS's Style Manager, limited to the schema's fixed style set (colors, spacing, fonts, sizes, borders). No free-form CSS.
 - [x] **B5.** Theme controls: font pair and spacing scale (stored in the file, not applied yet).
-- [ ] **B6.** Remaining components: list, columns, YouTube, text area, dropdown, counter, timer display, modal, navigation.
+- [~] **B6.** Remaining components: done: list, columns, YouTube (privacy embed; placeholder in the Preview), text area, dropdown, navigation, pop-up box. Still to do: counter and timer display (they need B7's logic).
 - [ ] **B7.** Remaining actions: and / or / not, compare as a value, checkbox state, counter and timer components.
 - [x] **B8.** Content Security Policy for the exported site (`default-src 'self'`, images from https or data:, no objects, no inline scripts). The preview is not restricted. Adding YouTube (B6) will need a `frame-src` entry.
 - [x] **B0. Interaction blocks drive the preview.** Dragging, editing, and deleting blocks now updates the preview live.
-- [~] **B9.** Web tests for B1–B8 as each lands. Done for B2, B3, B5, B8 (`tests/web_manage_test.py`). Real-mouse drag test (`tests/drag_test.py`). Still to do: B4, B6, B7.
+- [~] **B9.** Web tests for B1–B8 as each lands. Done: B2, B3, B4, B5, B8 (`tests/web_manage_test.py`, `tests/web_style_test.py`), B6 (`tests/web_components_test.py`). Real-mouse drag test (`tests/drag_test.py`). Still to do: B7 and the counter and timer parts of B6.
+
+### Phase 1 items added after the review (decided)
+
+- [ ] **P1. Set home page.** Make another page the home page (the home page cannot be deleted until this exists). Decided: yes.
+- [ ] **P2. Responsive preview.** Desktop, tablet and mobile widths for the Web preview (plan §3.1 B). Decided: yes.
+- [ ] **P3. Accessibility.** Keyboard navigation in both editors, screen-reader labels on controls, a high-contrast theme, and adjustable text size (plan §3.1 D). Decided: yes.
+- [ ] **P4. Blocks: undo and redo** (verify what scratch-blocks gives; add the missing keys and buttons).
+- [ ] **P5. Blocks: copy one block** (not the whole stack).
+- [ ] **P6. Blocks: enable and disable blocks.** Recommended for Phase 1. Needs your confirmation.
+- [ ] **P7. Blocks: export a script as an image.** Recommended for Phase 1. Needs your confirmation.
+- [ ] **P8. Blocks: search and backpack.** Recommended for Phase 2 (search: palette is small; backpack: needs storage beyond one project). Needs your confirmation.
+- [ ] **P9. Blocks project as runnable HTML.** Plan §3.1 C asks for it. Status unknown; to verify.
+- [?] **P10. Read-only HTML and CSS code view in Web mode.** The plan says Phase 1; the checklist (C1) says Phase 2. Your decision.
 
 ## Track C: Text coding and the JS view (Phase 2)
 
@@ -132,6 +145,7 @@ Goal: the real Scratch 3.0 block editor and block set, with our own sprite and s
 - 2026-10-11: Blocks batch 19 (A13): broadcast [msg] and wait; stop this script; stop all. Key, click and message scripts run without a green flag: when the project is not running, each sprite keeps an idle worker with its event scripts. Stop respawns them from the current scripts; edits rebuild them after a short delay. Tests: `tests/control2_test.py`; `tests/events_test.py` updated (keys now work after Stop, by design). Round-trip script 20 added. Limit: idle workers do not keep state between runs (a Stop resets to the start positions, as before).
 - 2026-10-11: Blocks batch 21 (A15, effects and volume): set, change and clear graphic effects (colour, ghost, brightness) and a volume reporter. Tests: `tests/effects_test.py`, round-trip script 23.
 - 2026-10-11: Web batch W1 (B2, B3, B5, B8): rename and delete pages (with link checks); hidden elements shown on the canvas with a show-hidden toggle and a Hidden checkbox; font pair and spacing stored in the theme; exported pages carry a Content-Security-Policy. The toolbar wraps on narrow widths (the new buttons were hidden under the preview). Test: `tests/web_manage_test.py`, fixture `tests/fixtures/linked-pages.akutu`; `web_test`, `preview_test`, `interactions_test`, `logic_test` still pass. Test hook `window.__akutu.web()` added.
+- 2026-10-11: Web batch W2 (B4, B6): style panel for the selected element with presets only (text and background colour, padding, margin, font size and weight, alignment, corner radius, width, height). Every style is checked when read, written, and exported, so free-form CSS from a file is dropped. Components added: text area, dropdown, list, two columns, navigation, pop-up box, and YouTube video (privacy-enhanced embed only; the editor and Preview show a placeholder, and the exported site plays it). The site's policy now allows YouTube frames only. Tests: `tests/web_style_test.py`, `tests/web_components_test.py`; fixtures `style-inject.akutu`, `components.akutu`. All Web suites still pass.
 - 2026-10-11: Full suite run after batch 19: all 27 test files and `tests/smoke.py` pass. Plus `npm run build`.
 - 2026-10-11: Blocks batch 20 (A14, lists): a Lists category with Make a List (scratch-blocks prompt; a browser prompt handler is installed), add, delete (number, last or all), insert, replace, item, length and contains (case-insensitive). Lists are saved as `stage.lists` with `{id, name, items}` (schema updated, and a list definition added). Lists keep their items across green-flag runs and are saved with the project. Tests: `tests/lists_test.py`; round-trip scripts 21 and 22 added. Limits: no list monitor on the stage (the list is not shown on the stage yet), no list rename, and deleting a list in the editor does not remove it from the project yet.
 - 2026-10-11: Blocks batch 21 (A15, effects and volume): set [colour|ghost|brightness] effect to [n], change [effect] effect by [n], clear graphic effects, and a volume reporter. Colour wraps (200 is a full turn), ghost is 0 to 100, brightness -100 to 100. Green flag resets effects; Stop keeps them. Limits: colour and brightness use canvas filters, so Safari shows no change; no fisheye, pixelate, mosaic or whirl; no ghost on the stage backdrop. Tests: `tests/effects_test.py`, round trip script 23, `events_test`, `motion_test`, `motion2_test`, `lists_test`, `npm run build`.

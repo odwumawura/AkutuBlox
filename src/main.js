@@ -21,7 +21,7 @@ import {
   readProjectFile,
   readImageUpload,
 } from './project.js';
-import { siteFiles, previewHtml, treeFromEditor, PALETTE, HIDDEN_CLASS, setComponentHidden, isComponentHidden } from './web/model.js';
+import { siteFiles, previewHtml, treeFromEditor, PALETTE, HIDDEN_CLASS, setComponentHidden, isComponentHidden, STYLE_CSS, STYLE_OPTIONS, safeStyleValue, COMPONENT_CSS, youtubeIdFrom } from './web/model.js';
 import {
   INTERACTION_TOOLBOX,
   registerInteractionBlocks,
@@ -481,7 +481,7 @@ function applyShowHidden() {
   editor.Canvas.getBody()?.classList.toggle('hide-hidden', !on);
 }
 editor.on('load', () => {
-  editor.Css.addRules(HIDDEN_CANVAS_CSS);
+  editor.Css.addRules(HIDDEN_CANVAS_CSS + COMPONENT_CSS);
   applyShowHidden();
 });
 document.getElementById('show-hidden').addEventListener('click', (e) => {
@@ -499,12 +499,86 @@ editor.on('component:selected', (c) => {
   if (!real) return;
   document.getElementById('el-title').textContent = `Selected: <${c.get('tagName') || 'div'}>`;
   hiddenBox.checked = isComponentHidden(c);
+  fillStyleFields(c);
+  const isVideo = c.get('tagName') === 'iframe';
+  document.getElementById('el-youtube-row').hidden = !isVideo;
+  document.getElementById('el-youtube').value = c.getAttributes()['data-youtube-id'] || '';
+});
+
+// Video: paste a YouTube link or the 11-character ID. Only the privacy-enhanced embed is used.
+document.getElementById('el-youtube').addEventListener('change', (e) => {
+  const c = editor.getSelected();
+  if (!c || c.get('tagName') !== 'iframe') return;
+  const id = youtubeIdFrom(e.target.value);
+  if (!id && e.target.value.trim()) return alert('Paste a YouTube link or an 11-character video ID.');
+  c.addAttributes({ 'data-youtube-id': id });
+  markDirty();
+  previewCurrentPage();
 });
 editor.on('component:deselected', () => { elementPanel.hidden = true; });
 hiddenBox.addEventListener('change', () => {
   const c = editor.getSelected();
   if (!c) return;
   setComponentHidden(c, hiddenBox.checked);
+  markDirty();
+  previewCurrentPage();
+});
+
+// ---- Style panel (B4): presets only, for the selected element ----
+const styleFields = document.getElementById('style-fields');
+for (const [key, opt] of Object.entries(STYLE_OPTIONS)) {
+  const label = document.createElement('label');
+  label.className = 'style-field';
+  label.append(`${opt.label} `);
+  let input;
+  if (opt.kind === 'colour') {
+    input = document.createElement('input');
+    input.type = 'color';
+    input.title = 'Use Reset style to remove the colour';
+  } else {
+    input = document.createElement('select');
+    input.append(new Option('(default)', ''));
+    for (const [value, text] of opt.options) input.append(new Option(text, value));
+  }
+  input.dataset.style = key;
+  input.setAttribute('aria-label', opt.label);
+  label.append(input);
+  styleFields.append(label);
+}
+
+// Show the selected element's current style in the panel.
+function fillStyleFields(c) {
+  const style = c.getStyle() || {};
+  for (const input of styleFields.querySelectorAll('[data-style]')) {
+    const key = input.dataset.style;
+    const value = safeStyleValue(key, style[STYLE_CSS[key]]);
+    input.value = value ?? (input.type === 'color' ? '#000000' : '');
+  }
+}
+
+// Set one style on the selected element. An empty value removes it.
+function applyStyle(key, value) {
+  const c = editor.getSelected();
+  if (!c) return;
+  const next = { ...c.getStyle() };
+  delete next[STYLE_CSS[key]];
+  if (value) {
+    const ok = safeStyleValue(key, value);
+    if (ok === null) return;
+    next[STYLE_CSS[key]] = ok;
+  }
+  c.setStyle(next);
+  markDirty();
+  previewCurrentPage();
+}
+styleFields.addEventListener('change', (e) => {
+  if (e.target.dataset.style) applyStyle(e.target.dataset.style, e.target.value);
+});
+document.getElementById('reset-style').addEventListener('click', () => {
+  const c = editor.getSelected();
+  if (!c) return;
+  c.setStyle({});
+  fillStyleFields(c);
   markDirty();
   previewCurrentPage();
 });
