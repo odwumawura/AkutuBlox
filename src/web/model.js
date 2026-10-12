@@ -31,6 +31,7 @@ export const COMPONENT_CSS = `.akutu-columns { display: grid; grid-template-colu
 .akutu-video { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
 .akutu-video-note { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; border: 2px dashed #94a3b8; border-radius: 8px; color: #475569; text-align: center; padding: 8px; }
 textarea, select { font: inherit; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+@media (max-width: 600px) { .akutu-columns { grid-template-columns: 1fr; } .akutu-modal { padding: 16px; } }
 `;
 
 // A YouTube video ID is 11 letters, digits, - or _. Accepts a link or a bare ID; returns '' when there is none.
@@ -323,7 +324,7 @@ export function renderPage(page, pages, { site = true, script = '' } = {}) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${site ? `<meta http-equiv="Content-Security-Policy" content="${SITE_CSP}">` : ''}
 <title>${esc(page.title || page.name)}</title>
-${site ? '<link rel="stylesheet" href="styles.css">' : `<style>${'[hidden]{display:none !important}\\n' + css.join('\\n')}</style>`}
+${site ? '<link rel="stylesheet" href="styles.css">' : `<style>${'[hidden]{display:none !important}\n' + css.join('\n')}</style>`}
 </head>
 <body data-page="${esc(page.id)}">
 <main>

@@ -642,6 +642,16 @@ function showSideTab(name) {
   else previewCurrentPage();
 }
 document.getElementById('side-preview').addEventListener('click', () => showSideTab('preview'));
+
+// Preview width: shows the exported page at a tablet or phone width (CSS widths; the site's layout adapts).
+const PREVIEW_WIDTHS = { desktop: '100%', tablet: '768px', mobile: '390px' };
+document.getElementById('preview-size').addEventListener('change', (e) => {
+  const frame = document.getElementById('preview-frame');
+  const width = PREVIEW_WIDTHS[e.target.value] || '100%';
+  frame.style.width = width;
+  frame.style.flexShrink = width === '100%' ? '' : '0';  // a tablet width can be wider than the pane; the pane scrolls
+  frame.classList.toggle('narrow', width !== '100%');
+});
 document.getElementById('side-interactions').addEventListener('click', () => showSideTab('interactions'));
 
 document.getElementById('export').addEventListener('click', async () => {
