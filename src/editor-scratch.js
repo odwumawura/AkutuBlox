@@ -660,6 +660,35 @@ export function scratchAdapter(ws) {
   };
 }
 
+// Right-click: "Duplicate this block only" copies the block and what is inside it, but not the blocks below it.
+// (scratch-blocks' own Duplicate copies the rest of the stack too.)
+function registerCopyOneBlock() {
+  ScratchBlocks.ContextMenuRegistry.registry.register({
+    id: 'akutuDuplicateOne',
+    displayText: 'Duplicate this block only',
+    scopeType: ScratchBlocks.ContextMenuRegistry.ScopeType.BLOCK,
+    weight: 1.5,
+    preconditionFn: () => 'enabled',
+    callback: (scope) => {
+      const block = scope.block;
+      const dom = ScratchBlocks.Xml.blockToDom(block, true);
+      for (const child of Array.from(dom.children)) {
+        if (child.tagName.toLowerCase() === 'next') dom.removeChild(child);
+      }
+      // One event group, so one Undo removes the whole copy.
+      ScratchBlocks.Events.setGroup(true);
+      try {
+        const copy = ScratchBlocks.Xml.domToBlock(dom, block.workspace);
+        const { x, y } = block.getRelativeToSurfaceXY();
+        copy.moveBy(x + 30, y + 30);
+        copy.select();
+      } finally {
+        ScratchBlocks.Events.setGroup(false);
+      }
+    },
+  });
+}
+
 export function injectScratch(el) {
   // Inject with a one-category toolbox: custom categories need their callbacks, and scratch-blocks opens
   // categories while injecting. The real toolbox is loaded once the callbacks exist.
@@ -670,6 +699,7 @@ export function injectScratch(el) {
     theme: ScratchTheme,
   });
   ws.registerToolboxCategoryCallback('VARIABLE', variableFlyout);
+  registerCopyOneBlock();
   // scratch-blocks asks for variable and list names through a prompt handler. The Scratch GUI normally sets it; here it is the browser prompt.
   ScratchBlocks.ScratchVariables.setPromptHandler((message, defaultValue, callback) => {
     const text = window.prompt(message, defaultValue ?? '');
