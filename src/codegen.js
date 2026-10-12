@@ -11,9 +11,12 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// A disabled reporter counts as an empty slot (the slot's literal value is used instead).
+const live = (b) => (b && !b.disabled ? b : undefined);
+
 // Code for a reporter (expression) block or a literal.
 function expr(e) {
-  if (!e) return 'undefined';
+  if (!e || e.disabled) return 'undefined';
   if (e.type === 'math_number') return String(num(e.fields?.NUM));
   const gen = EXPR[e.type];
   return gen ? gen(e) : 'undefined';
@@ -21,21 +24,21 @@ function expr(e) {
 
 // A numeric input: its reporter if it has one, otherwise the literal in fields.
 function value(b, name) {
-  const reporter = b.inputs?.[name]?.block;
+  const reporter = live(b.inputs?.[name]?.block);
   if (reporter) return `(${expr(reporter)})`;
   return String(num(b.fields?.[name]));
 }
 
 // A value that can be text or a number: a reporter, or the literal as saved.
 function literalOrReporter(b, name) {
-  const reporter = b.inputs?.[name]?.block;
+  const reporter = live(b.inputs?.[name]?.block);
   if (reporter) return `(${expr(reporter)})`;
   return JSON.stringify(b.fields?.[name] ?? 0);
 }
 
 // A list value inside a reporter: a text literal stays text, a reporter is evaluated.
 const anyValue = (e, name) => {
-  const b = e.inputs?.[name]?.block;
+  const b = live(e.inputs?.[name]?.block);
   if (!b) return '""';
   if (b.type === 'math_number') return JSON.stringify(b.fields?.NUM ?? '');
   return expr(b);
@@ -43,16 +46,16 @@ const anyValue = (e, name) => {
 
 // A boolean input: a reporter, or false when empty.
 function condition(b, name) {
-  const reporter = b.inputs?.[name]?.block;
+  const reporter = live(b.inputs?.[name]?.block);
   return reporter ? `(${expr(reporter)})` : 'false';
 }
 
 const operand = (e, name) => {
-  const reporter = e.inputs?.[name]?.block;
+  const reporter = live(e.inputs?.[name]?.block);
   return reporter ? expr(reporter) : '0';
 };
 const bool = (e, name) => {
-  const reporter = e.inputs?.[name]?.block;
+  const reporter = live(e.inputs?.[name]?.block);
   return reporter ? expr(reporter) : 'false';
 };
 
@@ -151,7 +154,7 @@ function chain(block) {
   let code = '';
   for (let b = block; b; b = b.next?.block) {
     const gen = GEN[b.type];
-    if (gen) code += gen(b);
+    if (gen && !b.disabled) code += gen(b);  // a disabled block is skipped; the blocks below it still run
   }
   return code;
 }
@@ -162,5 +165,6 @@ function body(block, input) {
 
 // Code for one sprite's saved scripts (an array of { blocks: [chain] }).
 export function codeForScripts(scripts) {
-  return (scripts || []).map((s) => (s.blocks || []).map((b) => chain(b)).join('')).join('');
+  // A script whose hat is disabled does nothing.
+  return (scripts || []).map((s) => (s.blocks || []).filter((b) => !b.disabled).map((b) => chain(b)).join('')).join('');
 }

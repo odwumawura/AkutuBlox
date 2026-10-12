@@ -484,7 +484,7 @@ function inputToOld(block, scratchName) {
   return { kind: 'reporter', block: reporterToOld(target) };
 }
 
-function reporterToOld(block) {
+function reporterToOldRaw(block) {
   if (block.type === 'data_variable') return { type: 'data_variable', fields: { VARIABLE: variableName(block) } };
   const listName = byScratch[block.type]?.listField;
   if (block.type === 'sensing_touchingsprite') return { type: 'sensing_touchingsprite', fields: { SPRITE: block.getFieldValue('SPRITE') ?? '' } };
@@ -501,7 +501,7 @@ function reporterToOld(block) {
 }
 
 // ---- Scratch -> our format ----
-function chainToOld(block) {
+function chainToOldRaw(block) {
   if (!block) return undefined;
   const m = byScratch[block.type];
   if (!m) return undefined; // unknown block types are not saved
@@ -540,6 +540,44 @@ const variableField = (name) => `<field name="VARIABLE" id="${esc(varId(name ?? 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // A reporter (or literal) placed in an input.
+// Disabled blocks: saved as disabled: true (and disabled="true" in the workspace XML). Added around the converters.
+// Loading: a disabled block gets a temporary id in the XML; after the blocks are placed, the ids are looked up and flagged.
+let offCounter = 0;
+let pendingOffIds = [];
+function markOffXml(xml) {
+  const id = `akutu-off-${++offCounter}`;
+  pendingOffIds.push(id);
+  return xml.replace(/^<block /, `<block id="${id}" `);
+}
+function reporterToOld(block) {
+  const json = reporterToOldRaw(block);
+  if (json && block?.akutuDisabled) json.disabled = true;
+  return json;
+}
+function chainToOld(block) {
+  const json = chainToOldRaw(block);
+  if (json && block?.akutuDisabled) json.disabled = true;
+  return json;
+}
+function blockXml(e) {
+  const xml = blockXmlRaw(e);
+  return e?.disabled ? markOffXml(xml) : xml;
+}
+function chainToXml(json) {
+  const xml = chainToXmlRaw(json);
+  return json?.disabled && xml ? markOffXml(xml) : xml;
+}
+
+// Shows a disabled block faded, and records the flag. Fires a change so the project is marked as edited and the programs rebuild.
+function setBlockOff(block, off, fire = true) {
+  block.akutuDisabled = off;
+  const root = block.getSvgRoot?.();
+  if (root) root.style.opacity = off ? '0.4' : '';
+  if (fire && ScratchBlocks.Events.BlockChange) {
+    block.workspace.fireChangeListener(new ScratchBlocks.Events.BlockChange(block, 'disabled', null, String(!off), String(off)));
+  }
+}
+
 function reporterXml(e, inputName, textShadow = false) {
   if (e.type === 'math_number') {
     const v = esc(e.fields?.NUM ?? 0);
@@ -559,7 +597,7 @@ function operandsXml(e, names) {
 }
 
 // Any block (statement or reporter), without its `next` chain.
-function blockXml(e) {
+function blockXmlRaw(e) {
   if (e.type === 'sensing_touchingsprite') return `<block type="sensing_touchingsprite"><field name="SPRITE">${esc(e.fields?.SPRITE ?? '')}</field></block>`;
   if (e.type === 'data_variable') return `<block type="data_variable">${variableField(e.fields?.VARIABLE)}</block>`;
   if (byOld[e.type]?.listField) return `<block type="${e.type}">${listFieldXml(e.fields?.LIST)}${operandsXml(e, REPORTERS[e.type] || [])}</block>`;
@@ -567,7 +605,7 @@ function blockXml(e) {
   return '';
 }
 
-function chainToXml(json) {
+function chainToXmlRaw(json) {
   if (!json) return '';
   const m = byOld[json.type];
   if (!m) return '';
@@ -606,6 +644,9 @@ export function scratchAdapter(ws) {
   return {
     name: 'scratch',
     ws,
+    scriptsPng() {
+      return scriptsToPng(ws);
+    },
     getScripts() {
       return ws.getTopBlocks(true).map((block, i) => {
         const { x, y } = block.getRelativeToSurfaceXY();
@@ -621,6 +662,11 @@ export function scratchAdapter(ws) {
       if (!parts.length) return;
       const dom = new DOMParser().parseFromString(`<xml xmlns="http://www.w3.org/1999/xhtml">${parts.join('')}</xml>`, 'text/xml').documentElement;
       ScratchBlocks.Xml.domToWorkspace(dom, ws);
+      for (const id of pendingOffIds) {
+        const block = ws.getBlockById(id);
+        if (block) setBlockOff(block, true, false);  // loading: no change event
+      }
+      pendingOffIds = [];
     },
     onChange(cb) {
       ws.addChangeListener((e) => {
@@ -660,6 +706,78 @@ export function scratchAdapter(ws) {
   };
 }
 
+// Draws the scripts (the blocks canvas) as a PNG. Styles and icons are copied into the picture, so it looks like the editor.
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+export async function scriptsToPng(ws, scale = 2) {
+  const canvas = ws.getBlockCanvas();
+  const box = canvas.getBBox();
+  if (!box.width || !box.height) return null;
+  const pad = 20;
+  const w = Math.ceil(box.width + pad * 2);
+  const h = Math.ceil(box.height + pad * 2);
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('xmlns', NS);
+  svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `${box.x - pad} ${box.y - pad} ${w} ${h}`);
+  // The editor's CSS is scoped to the classes of the elements around the workspace (for example scratch-renderer scratch-akutu-theme).
+  // Copy those classes onto the picture's root so the blocks look the same.
+  const themeClasses = new Set();
+  for (let el = ws.getParentSvg(); el; el = el.parentElement) {
+    for (const c of el.classList || []) themeClasses.add(c);
+  }
+  svg.setAttribute('class', [...themeClasses].join(' '));
+  const bg = document.createElementNS(NS, 'rect');
+  bg.setAttribute('x', box.x - pad);
+  bg.setAttribute('y', box.y - pad);
+  bg.setAttribute('width', w);
+  bg.setAttribute('height', h);
+  bg.setAttribute('fill', '#ffffff');
+  svg.appendChild(bg);
+  const style = document.createElementNS(NS, 'style');
+  style.textContent = [...document.querySelectorAll('style')].map((s) => s.textContent).join('\n');
+  svg.appendChild(style);
+  const copy = canvas.cloneNode(true);
+  copy.removeAttribute('transform');
+  svg.appendChild(copy);
+  // Icons are files on the server; put them in the picture so the image does not depend on the page.
+  for (const image of svg.querySelectorAll('image')) {
+    const href = image.getAttribute('href') || image.getAttribute('xlink:href');
+    if (!href || href.startsWith('data:')) continue;
+    const blob = await (await fetch(href)).blob();
+    image.setAttribute('href', await blobToDataUrl(blob));
+    image.removeAttribute('xlink:href');
+  }
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }));
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('The scripts could not be drawn.'));
+      img.src = url;
+    });
+    const out = document.createElement('canvas');
+    out.width = w * scale;
+    out.height = h * scale;
+    const g = out.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, out.width, out.height);
+    g.drawImage(img, 0, 0, out.width, out.height);
+    return await new Promise((resolve) => out.toBlob(resolve, 'image/png'));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 // Right-click: "Duplicate this block only" copies the block and what is inside it, but not the blocks below it.
 // (scratch-blocks' own Duplicate copies the rest of the stack too.)
 function registerCopyOneBlock() {
@@ -689,6 +807,20 @@ function registerCopyOneBlock() {
   });
 }
 
+// Right-click: disable or enable a block. A disabled block does nothing when the project runs; its saved copy keeps the block.
+function registerDisableBlock() {
+  ScratchBlocks.ContextMenuRegistry.registry.register({
+    id: 'akutuToggleBlock',
+    displayText: (scope) => (scope.block.akutuDisabled ? 'Enable block' : 'Disable block'),
+    scopeType: ScratchBlocks.ContextMenuRegistry.ScopeType.BLOCK,
+    weight: 1.6,
+    preconditionFn: () => 'enabled',
+    callback: (scope) => {
+      setBlockOff(scope.block, !scope.block.akutuDisabled);
+    },
+  });
+}
+
 export function injectScratch(el) {
   // Inject with a one-category toolbox: custom categories need their callbacks, and scratch-blocks opens
   // categories while injecting. The real toolbox is loaded once the callbacks exist.
@@ -700,6 +832,7 @@ export function injectScratch(el) {
   });
   ws.registerToolboxCategoryCallback('VARIABLE', variableFlyout);
   registerCopyOneBlock();
+  registerDisableBlock();
   // scratch-blocks asks for variable and list names through a prompt handler. The Scratch GUI normally sets it; here it is the browser prompt.
   ScratchBlocks.ScratchVariables.setPromptHandler((message, defaultValue, callback) => {
     const text = window.prompt(message, defaultValue ?? '');

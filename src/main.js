@@ -796,6 +796,22 @@ el.tabs.blocks.addEventListener('click', () => switchMode('blocks'));
 document.getElementById('undo').addEventListener('click', () => blocksEditor.ws.undo(false));
 document.getElementById('redo').addEventListener('click', () => blocksEditor.ws.undo(true));
 
+// Export the scripts as a PNG picture (the whole scripts area, not the visible part).
+document.getElementById('export-image').addEventListener('click', async () => {
+  try {
+    const blob = await blocksEditor.scriptsPng();
+    if (!blob) return alert('There are no scripts to export yet.');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const safe = (state.project?.meta?.name || 'scripts').replace(/[^a-z0-9-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'scripts';
+    a.download = `${safe}-scripts.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) {
+    alert(`The picture could not be made: ${e.message}`);
+  }
+});
+
 // ---- Accessibility settings (P3): text size and high contrast. Remembered on this device. ----
 const ACCESS_KEY = 'akutu-access';
 function readAccess() {
