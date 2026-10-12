@@ -164,7 +164,10 @@ function body(block, input) {
 }
 
 // Code for one sprite's saved scripts (an array of { blocks: [chain] }).
+// Only these start a script that runs. A loose stack (not under a hat) does not run, as in Scratch;
+// generating its blocks at the top level would make the whole sprite's code fail.
+const RUNNABLE_STARTS = new Set(['event_flag', 'event_key', 'event_click', 'event_message', 'myblock_define']);
 export function codeForScripts(scripts) {
   // A script whose hat is disabled does nothing.
-  return (scripts || []).map((s) => (s.blocks || []).filter((b) => !b.disabled).map((b) => chain(b)).join('')).join('');
+  return (scripts || []).map((s) => (s.blocks || []).filter((b) => !b.disabled && RUNNABLE_STARTS.has(b.type)).map((b) => chain(b)).join('')).join('');
 }
