@@ -287,6 +287,31 @@ document.getElementById('delete-el').addEventListener('click', () => {
   if (selected) selected.remove();
 });
 for (const item of PALETTE) editor.Blocks.add(item.id, { label: item.label, content: item.content, category: 'Components' });
+
+// Keyboard: each palette item is a button. Enter or Space adds it inside the selected container, or at the end of the page.
+function addPaletteItem(id) {
+  const item = PALETTE.find((p) => p.id === id);
+  if (!item) return;
+  const selected = editor.getSelected();
+  const target = selected && selected.get('droppable') ? selected : editor.getWrapper();
+  const [added] = target.append(item.content);
+  if (added) editor.select(added);
+}
+function decoratePalette() {
+  document.querySelectorAll('#palette .gjs-block').forEach((block) => {
+    if (block.dataset.kb) return;
+    block.dataset.kb = '1';
+    const id = block.getAttribute('data-gjs-type') || PALETTE.find((p) => p.label === block.textContent.trim())?.id;
+    block.tabIndex = 0;
+    block.setAttribute('role', 'button');
+    block.setAttribute('aria-label', `Add ${PALETTE.find((p) => p.id === id)?.label || block.textContent.trim()}`);
+    block.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addPaletteItem(id); }
+    });
+  });
+}
+new MutationObserver(decoratePalette).observe(document.getElementById('palette'), { childList: true, subtree: true });
+decoratePalette();
 // GrapesJS reports updates after loading too, so only count a change when the canvas really differs from the last snapshot.
 const webSnapshot = () => JSON.stringify(treeFromEditor(editor));
 // Interaction editor (right pane). Hidden until the Interactions tab is opened.
@@ -766,6 +791,29 @@ async function openFile(file) {
 
 // ---------- Wiring ----------
 el.tabs.blocks.addEventListener('click', () => switchMode('blocks'));
+
+// ---- Accessibility settings (P3): text size and high contrast. Remembered on this device. ----
+const ACCESS_KEY = 'akutu-access';
+function readAccess() {
+  try { return JSON.parse(localStorage.getItem(ACCESS_KEY)) || {}; } catch (e) { return {}; }
+}
+function applyAccess(settings) {
+  const text = ['normal', 'large', 'largest'].includes(settings.text) ? settings.text : 'normal';
+  const contrast = settings.contrast === true;
+  document.documentElement.dataset.text = text;
+  document.documentElement.dataset.contrast = contrast ? 'high' : 'normal';
+  document.getElementById('text-size').value = text;
+  const btn = document.getElementById('contrast');
+  btn.setAttribute('aria-pressed', String(contrast));
+  return { text, contrast };
+}
+let access = applyAccess(readAccess());
+function saveAccess(patch) {
+  access = applyAccess({ ...access, ...patch });
+  try { localStorage.setItem(ACCESS_KEY, JSON.stringify(access)); } catch (e) { /* storage may be off; the setting still applies */ }
+}
+document.getElementById('text-size').addEventListener('change', (e) => saveAccess({ text: e.target.value }));
+document.getElementById('contrast').addEventListener('click', () => saveAccess({ contrast: !access.contrast }));
 el.tabs.web.addEventListener('click', () => switchMode('web'));
 document.getElementById('new').addEventListener('click', () => newProject(state.mode));
 document.getElementById('save').addEventListener('click', saveCurrent);

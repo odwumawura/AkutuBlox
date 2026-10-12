@@ -14,7 +14,9 @@
       </nav>
       <div class="project">
         <input id="project-name" aria-label="Project name" value="Untitled" />
-        <span id="dirty" class="dirty" hidden>Unsaved</span>
+        <span id="dirty" class="dirty" role="status" hidden>Unsaved</span>
+        <label class="access-field">Text size <select id="text-size" aria-label="Text size"><option value="normal">Normal</option><option value="large">Large</option><option value="largest">Largest</option></select></label>
+        <button id="contrast" class="secondary" aria-pressed="false" title="Black and white colours with strong outlines">High contrast</button>
         <button id="new" class="secondary">New</button>
         <button id="open" class="secondary">Open</button>
         <input id="open-file" type="file" accept=".akutu,application/json" hidden />
