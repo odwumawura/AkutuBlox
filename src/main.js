@@ -36,7 +36,13 @@ const state = { mode: 'blocks', project: null, dirty: false, loading: false, web
 const assetUrls = new Map(); // asset path -> object URL, made once per file
 
 const el = {
-  tabs: { blocks: document.getElementById('tab-blocks'), web: document.getElementById('tab-web') },
+  tabs: {
+    blocks: document.getElementById('tab-blocks'),
+    web: document.getElementById('tab-web'),
+    python: document.getElementById('tab-python'),
+    costumes: document.getElementById('tab-costumes'),
+    sounds: document.getElementById('tab-sounds'),
+  },
   views: {
     welcome: document.getElementById('view-welcome'),
     blocks: document.getElementById('view-blocks'),
@@ -48,8 +54,12 @@ const el = {
   promptText: document.getElementById('prompt-text'),
   openFile: document.getElementById('open-file'),
   pageSelect: document.getElementById('page-select'),
+  topbar: {
+    right: document.querySelector('.topbar-right'),
+    signin: document.getElementById('topbar-signin'),
+    settings: document.getElementById('topbar-settings'),
+  },
   welcome: {
-    actions: document.getElementById('welcome-actions'),
     blocks: document.getElementById('welcome-blocks'),
   },
 };
@@ -709,25 +719,22 @@ function showView(mode) {
     el.views.welcome.classList.add('active');
     el.views.blocks.classList.remove('active');
     el.views.web.classList.remove('active');
-    el.tabs.blocks.classList.remove('active');
-    el.tabs.blocks.setAttribute('aria-selected', 'false');
-    el.tabs.web.classList.remove('active');
-    el.tabs.web.setAttribute('aria-selected', 'false');
-    el.welcome.actions.hidden = false;
-    el.tabs.blocks.hidden = true;
-    el.tabs.web.hidden = true;
+    for (const t of Object.values(el.tabs)) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    }
+    el.topbar.right.hidden = true;
     return;
   }
   el.views.welcome.classList.remove('active');
-  el.welcome.actions.hidden = true;
-  el.tabs.blocks.hidden = false;
-  el.tabs.web.hidden = false;
-  for (const key of ['blocks', 'web']) {
+  el.topbar.right.hidden = false;
+  for (const key of ['blocks', 'web', 'python', 'costumes', 'sounds']) {
     const on = key === mode;
     el.tabs[key].classList.toggle('active', on);
     el.tabs[key].setAttribute('aria-selected', String(on));
-    el.views[key].classList.toggle('active', on);
   }
+  el.views.blocks.classList.toggle('active', mode === 'blocks');
+  el.views.web.classList.toggle('active', mode === 'web');
   if (mode === 'blocks') blocksEditor.resize();
 }
 
@@ -818,6 +825,10 @@ async function openFile(file) {
 
 // ---------- Wiring ----------
 el.tabs.blocks.addEventListener('click', () => switchMode('blocks'));
+el.tabs.web.addEventListener('click', () => switchMode('web'));
+el.tabs.python.addEventListener('click', () => { if (state.mode !== 'python') { alert('Python coding is coming in Phase 2.'); } });
+el.tabs.costumes.addEventListener('click', () => { if (state.mode !== 'costumes') { alert('Costumes editor is coming in Phase 2.'); } });
+el.tabs.sounds.addEventListener('click', () => { if (state.mode !== 'sounds') { alert('Sounds editor is coming in Phase 2.'); } });
 
 // Undo and redo for the blocks (scratch-blocks keeps the history; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y also work).
 document.getElementById('undo').addEventListener('click', () => blocksEditor.ws.undo(false));
@@ -861,7 +872,7 @@ function saveAccess(patch) {
 }
 document.getElementById('text-size').addEventListener('change', (e) => saveAccess({ text: e.target.value }));
 document.getElementById('contrast').addEventListener('click', () => saveAccess({ contrast: !access.contrast }));
-el.tabs.web.addEventListener('click', () => switchMode('web'));
+
 document.getElementById('new').addEventListener('click', () => newProject(state.mode));
 document.getElementById('save').addEventListener('click', saveCurrent);
 document.getElementById('open').addEventListener('click', () => el.openFile.click());
