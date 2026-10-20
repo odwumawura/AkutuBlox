@@ -38,6 +38,7 @@ const assetUrls = new Map(); // asset path -> object URL, made once per file
 const el = {
   tabs: {
     blocks: document.getElementById('tab-blocks'),
+    web: document.getElementById('tab-web'),
     python: document.getElementById('tab-python'),
     costumes: document.getElementById('tab-costumes'),
     sounds: document.getElementById('tab-sounds'),
@@ -727,7 +728,7 @@ function showView(mode) {
   }
   el.views.welcome.classList.remove('active');
   el.topbar.right.hidden = false;
-  for (const key of ['blocks', 'python', 'costumes', 'sounds']) {
+  for (const key of ['blocks', 'web', 'python', 'costumes', 'sounds']) {
     const on = key === mode;
     el.tabs[key].classList.toggle('active', on);
     el.tabs[key].setAttribute('aria-selected', String(on));
@@ -824,6 +825,7 @@ async function openFile(file) {
 
 // ---------- Wiring ----------
 el.tabs.blocks.addEventListener('click', () => switchMode('blocks'));
+el.tabs.web.addEventListener('click', () => switchMode('web'));
 el.tabs.python.addEventListener('click', () => { if (state.mode !== 'python') { alert('Python coding is coming in Phase 2.'); } });
 el.tabs.costumes.addEventListener('click', () => { if (state.mode !== 'costumes') { alert('Costumes editor is coming in Phase 2.'); } });
 el.tabs.sounds.addEventListener('click', () => { if (state.mode !== 'sounds') { alert('Sounds editor is coming in Phase 2.'); } });
