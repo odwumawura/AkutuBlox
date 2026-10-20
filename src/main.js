@@ -37,13 +37,21 @@ const assetUrls = new Map(); // asset path -> object URL, made once per file
 
 const el = {
   tabs: { blocks: document.getElementById('tab-blocks'), web: document.getElementById('tab-web') },
-  views: { blocks: document.getElementById('view-blocks'), web: document.getElementById('view-web') },
+  views: {
+    welcome: document.getElementById('view-welcome'),
+    blocks: document.getElementById('view-blocks'),
+    web: document.getElementById('view-web'),
+  },
   name: document.getElementById('project-name'),
   dirty: document.getElementById('dirty'),
   prompt: document.getElementById('prompt'),
   promptText: document.getElementById('prompt-text'),
   openFile: document.getElementById('open-file'),
   pageSelect: document.getElementById('page-select'),
+  welcome: {
+    actions: document.getElementById('welcome-actions'),
+    blocks: document.getElementById('welcome-blocks'),
+  },
 };
 
 let programsTimer = null;
@@ -696,6 +704,24 @@ document.getElementById('export').addEventListener('click', async () => {
 // ---------- Project lifecycle ----------
 function showView(mode) {
   state.mode = mode;
+  // Welcome view: hide the editor chrome and show the welcome actions.
+  if (mode === 'welcome') {
+    el.views.welcome.classList.add('active');
+    el.views.blocks.classList.remove('active');
+    el.views.web.classList.remove('active');
+    el.tabs.blocks.classList.remove('active');
+    el.tabs.blocks.setAttribute('aria-selected', 'false');
+    el.tabs.web.classList.remove('active');
+    el.tabs.web.setAttribute('aria-selected', 'false');
+    el.welcome.actions.hidden = false;
+    el.tabs.blocks.hidden = true;
+    el.tabs.web.hidden = true;
+    return;
+  }
+  el.views.welcome.classList.remove('active');
+  el.welcome.actions.hidden = true;
+  el.tabs.blocks.hidden = false;
+  el.tabs.web.hidden = false;
   for (const key of ['blocks', 'web']) {
     const on = key === mode;
     el.tabs[key].classList.toggle('active', on);
@@ -852,8 +878,11 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-// Start with the starter blocks project.
-loadIntoEditors(newBlocksProject('Square walker'));
+// Start on the welcome screen (PictoBlox-style "What would you like to do?").
+showView('welcome');
+el.welcome.blocks.addEventListener('click', () => {
+  loadIntoEditors(newBlocksProject('Square walker'));
+});
 
 // Test hook: lets the browser tests read the stage. Harmless in production.
 window.__akutu = { web: () => state.project?.web, sprites: () => stage.getSprites(), assets: () => [...state.assets.keys()], sounds: () => stage.getSoundLog(), backdrop: () => stage.getBackdrop(), variables: () => stage.getVariables(), lists: () => stage.getLists(), snapshot: () => snapshotBlocksProject(state.project), scripts: () => blocksEditor.getScripts(), loadScripts: (scripts) => { blocksEditor.quiet(() => blocksEditor.setScripts(scripts)); schedulePrograms(); } };
