@@ -7,12 +7,18 @@
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">AkutuBlox <span class="tag">spike</span></div>
-      <nav class="modes" role="tablist">
+      <div class="brand">AkutuBlox</div>
+      <nav class="modes" role="tablist" hidden>
         <button id="tab-blocks" class="mode active" role="tab" aria-selected="true">Blocks</button>
         <button id="tab-web" class="mode" role="tab" aria-selected="false">Web</button>
       </nav>
-      <div class="project">
+      <div class="welcome-actions" hidden>
+        <button id="welcome-signin" class="secondary">Sign in</button>
+        <button id="welcome-achievements" class="secondary">Achievements</button>
+        <button id="welcome-settings" class="secondary">Settings</button>
+        <label class="welcome-lang">Language <select id="welcome-lang" aria-label="Language"><option value="en">English</option></select></label>
+      </div>
+      <div class="project" hidden>
         <input id="project-name" aria-label="Project name" value="Untitled" />
         <span id="dirty" class="dirty" role="status" hidden>Unsaved</span>
         <label class="access-field">Text size <select id="text-size" aria-label="Text size"><option value="normal">Normal</option><option value="large">Large</option><option value="largest">Largest</option></select></label>
@@ -26,7 +32,47 @@
     </header>
 
     <main>
-      <section id="view-blocks" class="view active">
+      <section id="view-welcome" class="view active">
+        <div class="welcome">
+          <h1>AkutuBlox</h1>
+          <p>What would you like to do?</p>
+          <div class="welcome-cards">
+            <button class="welcome-card" id="welcome-blocks" aria-label="Block Coding — code with puzzle-shaped blocks">
+              <span class="welcome-card-icon">🧩</span>
+              <span class="welcome-card-title">Block Coding</span>
+              <span class="welcome-card-desc">Code with playful puzzle-shaped blocks</span>
+            </button>
+            <button class="welcome-card" id="welcome-junior" aria-label="Junior Blocks — simple blocks for ages 4 and up" disabled>
+              <span class="welcome-card-icon">🐾</span>
+              <span class="welcome-card-title">Junior Blocks</span>
+              <span class="welcome-card-desc">Simple blocks for ages 4+</span>
+            </button>
+            <button class="welcome-card" id="welcome-python" aria-label="Python Coding — text based coding in Python" disabled>
+              <span class="welcome-card-icon">🐍</span>
+              <span class="welcome-card-title">Python Coding</span>
+              <span class="welcome-card-desc">Text based coding in Python</span>
+            </button>
+            <button class="welcome-card" id="welcome-ml" aria-label="Machine Learning — train ML models" disabled>
+              <span class="welcome-card-icon">🤖</span>
+              <span class="welcome-card-title">Machine Learning</span>
+              <span class="welcome-card-desc">Train ML models for images, sound and text</span>
+            </button>
+            <button class="welcome-card" id="welcome-3d" aria-label="3D and XR Studio — interactive 3D projects" disabled>
+              <span class="welcome-card-icon">🎮</span>
+              <span class="welcome-card-title">3D and XR Studio</span>
+              <span class="welcome-card-desc">Create interactive 3D and AR/VR projects</span>
+            </button>
+            <button class="welcome-card" id="welcome-paint" aria-label="Paint — draw, color and create designs" disabled>
+              <span class="welcome-card-icon">🎨</span>
+              <span class="welcome-card-title">Paint</span>
+              <span class="welcome-card-desc">Draw, color, and create designs</span>
+            </button>
+          </div>
+          <p class="welcome-note">Coming soon: Junior Blocks, Python, Machine Learning, 3D &amp; XR, and Paint.</p>
+        </div>
+      </section>
+
+      <section id="view-blocks" class="view">
         <div class="blocks-layout">
           <div id="blocklyDiv" class="blockly-pane"></div>
           <div class="stage-pane">
