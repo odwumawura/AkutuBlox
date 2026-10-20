@@ -7,27 +7,30 @@
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">AkutuBlox</div>
-      <nav class="modes" role="tablist" hidden>
-        <button id="tab-blocks" class="mode active" role="tab" aria-selected="true">Blocks</button>
-        <button id="tab-web" class="mode" role="tab" aria-selected="false">Web</button>
-      </nav>
-      <div class="welcome-actions" hidden>
-        <button id="welcome-signin" class="secondary">Sign in</button>
-        <button id="welcome-achievements" class="secondary">Achievements</button>
-        <button id="welcome-settings" class="secondary">Settings</button>
-        <label class="welcome-lang">Language <select id="welcome-lang" aria-label="Language"><option value="en">English</option></select></label>
+      <div class="brand-wrap">
+        <div class="brand">AkutuBlox</div>
+        <div class="edition">blocks</div>
       </div>
-      <div class="project" hidden>
+      <nav class="modes" role="tablist">
+        <button id="tab-blocks" class="mode active" role="tab" aria-selected="true">Blocks</button>
+        <button id="tab-python" class="mode" role="tab" aria-selected="false">Python</button>
+        <button id="tab-costumes" class="mode" role="tab" aria-selected="false">Costumes</button>
+        <button id="tab-sounds" class="mode" role="tab" aria-selected="false">Sounds</button>
+      </nav>
+      <div class="project">
         <input id="project-name" aria-label="Project name" value="Untitled" />
         <span id="dirty" class="dirty" role="status" hidden>Unsaved</span>
-        <label class="access-field">Text size <select id="text-size" aria-label="Text size"><option value="normal">Normal</option><option value="large">Large</option><option value="largest">Largest</option></select></label>
-        <button id="contrast" class="secondary" aria-pressed="false" title="Black and white colours with strong outlines">High contrast</button>
+        <button id="contrast" class="secondary" aria-pressed="false" title="High contrast colours">High contrast</button>
         <button id="new" class="secondary">New</button>
         <button id="open" class="secondary">Open</button>
         <input id="open-file" type="file" accept=".akutu,application/json" hidden />
         <input id="upload-image" type="file" accept="image/png,image/jpeg,image/gif" hidden />
         <button id="save" class="primary">Save</button>
+      </div>
+      <div class="topbar-right">
+        <label class="topbar-lang">Language <select id="topbar-lang" aria-label="Language"><option value="en">English</option></select></label>
+        <button id="topbar-settings" class="secondary" title="Settings">Settings</button>
+        <button id="topbar-signin" class="secondary">Sign in</button>
       </div>
     </header>
 
@@ -75,27 +78,52 @@
       <section id="view-blocks" class="view">
         <div class="blocks-layout">
           <div id="blocklyDiv" class="blockly-pane"></div>
-          <div class="stage-pane">
-            <div class="controls">
-              <button id="run" class="primary">Green flag</button>
-              <button id="stop" class="danger">Stop</button>
-              <button id="undo" class="secondary" title="Undo (Ctrl+Z)">Undo</button>
-              <button id="redo" class="secondary" title="Redo (Ctrl+Shift+Z or Ctrl+Y)">Redo</button>
-              <button id="export-image" class="secondary" title="Save the scripts as a PNG picture">Export scripts (.png)</button>
-            </div>
-            <div class="sprite-bar">
-              <div id="sprite-list" class="sprite-list" aria-label="Sprites"></div>
-              <div class="sprite-actions">
-                <select id="new-costume" aria-label="Costume for a new sprite"></select>
-                <button id="add-sprite" class="secondary">+ Sprite</button>
-                <button id="add-costume" class="secondary">Upload costume…</button>
-                <label class="backdrop-row">Backdrop <select id="backdrop-select" aria-label="Backdrop"></select></label>
-                <button id="add-backdrop" class="secondary">Upload backdrop…</button>
+            <div class="stage-pane">
+              <div class="stage-header">
+                <div class="stage-controls">
+                  <button id="run" class="primary">🚩 Green flag</button>
+                  <button id="stop" class="danger">⏹ Stop</button>
+                </div>
+                <div class="stage-actions">
+                  <button id="undo" class="secondary" title="Undo (Ctrl+Z)">Undo</button>
+                  <button id="redo" class="secondary" title="Redo (Ctrl+Shift+Z or Ctrl+Y)">Redo</button>
+                  <button id="export-image" class="secondary" title="Save the scripts as a PNG picture">Export scripts (.png)</button>
+                </div>
               </div>
+              <div class="stage-wrap">
+                <div class="stage-canvas">
+                  <canvas id="stage" width="480" height="360"></canvas>
+                </div>
+                <div class="stage-info">
+                  <div class="stage-info-card">
+                    <div class="sprite-thumb" id="sprite-thumb"></div>
+                    <div class="sprite-meta">
+                      <div class="sprite-name" id="sprite-name">Sprite</div>
+                      <div class="sprite-coords" id="sprite-coords">x: 0 · y: 0</div>
+                    </div>
+                    <div class="sprite-controls">
+                      <label class="ctrl-row"><input type="checkbox" id="sprite-show" checked> Show</label>
+                      <label class="ctrl-row">Size <input type="number" id="sprite-size" value="100" min="1" max="1000"></label>
+                      <label class="ctrl-row">Direction <input type="number" id="sprite-dir" value="90" min="-360" max="360"></label>
+                    </div>
+                  </div>
+                  <div class="backdrop-card">
+                    <span class="card-title">Backdrops</span>
+                    <select id="backdrop-select" aria-label="Backdrop"></select>
+                    <button id="add-backdrop" class="secondary" style="margin-top:6px">Upload backdrop…</button>
+                  </div>
+                </div>
+              </div>
+              <div class="sprite-bar">
+                <div id="sprite-list" class="sprite-list" aria-label="Sprites"></div>
+                <div class="sprite-actions">
+                  <select id="new-costume" aria-label="Costume for a new sprite"></select>
+                  <button id="add-sprite" class="secondary">+ Sprite</button>
+                  <button id="add-costume" class="secondary">Upload costume…</button>
+                </div>
+              </div>
+              <pre id="log" class="log"></pre>
             </div>
-            <canvas id="stage" width="480" height="360"></canvas>
-            <pre id="log" class="log"></pre>
-          </div>
         </div>
       </section>
 
